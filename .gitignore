@@ -1,0 +1,9 @@
+.env
+*.csv
+*.zip
+target/
+out.json
+*.class
+.idea/
+*.iml
+.DS_Store
