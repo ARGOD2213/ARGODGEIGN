@@ -12,6 +12,8 @@ For your use case (demo-only, no active users), the system should stay mostly OF
 - GitHub OIDC provider is created in AWS account `061039801536`.
 - IAM role created for Actions: `arn:aws:iam::061039801536:role/GitHubActionsArgodreignRole`.
 - Mobile workflows now support `aws_role_to_assume` input (OIDC mode).
+- ECS cluster `iot-cluster`, service `iot-api`, and ECR repo `iot-alert-engine` are created.
+- ECS service is currently configured to stay off by default (`desiredCount=0`).
 
 ## Recommended operating model (lowest-risk + mobile-friendly)
 1. Keep ECS service at `desiredCount=0` when idle.

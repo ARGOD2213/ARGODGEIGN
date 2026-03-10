@@ -25,7 +25,7 @@ If your main requirement is server control, keep production on ECS and use the w
 4. Add fallback secrets only if you are not using OIDC:
    - `AWS_ACCESS_KEY_ID`
    - `AWS_SECRET_ACCESS_KEY`
-5. In each workflow run, pass `aws_role_to_assume` with your IAM role ARN for OIDC mode.
+5. `aws_role_to_assume` is already pre-filled in workflows for this repo.
 
 ## Mobile workflows added in this repo
 - `.github/workflows/mobile-ecs-control.yml`
@@ -47,6 +47,7 @@ If your main requirement is server control, keep production on ECS and use the w
    - `ecs_service`: your service (default `iot-api`)
    - `desired_count`: usually `1` for start
 7. Run it and check summary in the run output.
+8. The summary now shows `Health URL (if running)` so you can open it directly.
 
 ## How to deploy from phone
 1. In GitHub app -> `Actions`.

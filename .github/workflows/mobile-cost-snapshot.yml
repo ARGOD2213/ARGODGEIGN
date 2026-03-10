@@ -11,7 +11,7 @@ on:
       aws_role_to_assume:
         description: "Optional IAM role ARN for OIDC (recommended)"
         required: false
-        default: ""
+        default: "arn:aws:iam::061039801536:role/GitHubActionsArgodreignRole"
         type: string
       monthly_budget_usd:
         description: "Your target monthly budget in USD"

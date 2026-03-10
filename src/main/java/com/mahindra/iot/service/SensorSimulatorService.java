@@ -3,6 +3,7 @@ package com.mahindra.iot.service;
 import com.mahindra.iot.dto.SensorIngestRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +13,7 @@ import java.util.Random;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "simulator.enabled", havingValue = "true", matchIfMissing = false)
 public class SensorSimulatorService {
 
     private final SensorEventService sensorEventService;

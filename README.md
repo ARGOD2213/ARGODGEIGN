@@ -172,6 +172,9 @@ Then in GitHub app:
 1. Open repo -> `Actions`
 2. Pick workflow
 3. Tap `Run workflow`
+4. For demo start/stop:
+   - Run `Mobile ECS Control` with `action=start`, then open `Health URL` from summary
+   - After demo, run `Mobile ECS Control` with `action=stop`
 
 Detailed step-by-step mobile guide:
 - `docs/MOBILE_OPERATIONS_PLAYBOOK.md`

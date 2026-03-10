@@ -86,6 +86,14 @@ $permissionsPolicy = @"
       "Resource": "*"
     },
     {
+      "Sid": "Ec2NetworkRead",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeNetworkInterfaces"
+      ],
+      "Resource": "*"
+    },
+    {
       "Sid": "EcrPushPull",
       "Effect": "Allow",
       "Action": [
