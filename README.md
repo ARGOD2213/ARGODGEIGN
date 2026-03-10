@@ -13,10 +13,14 @@ Production IoT monitoring backend with:
 - New API: `GET /api/v1/dashboard/overview`
 - New API: `GET /api/v1/device/{deviceId}/prediction?forecastSteps=6`
 - New built-in UI: `http://localhost:8080/` (live dashboard)
+- Cloud-lite runtime defaults:
+  - SQL auto-config disabled by default (no mandatory MySQL in cloud demo mode)
+  - Redis cache has in-memory fallback for low-cost demo operation
 - Secure env template: `.env.example`
 - Deployment scripts:
   - `scripts/deploy-ecs.ps1`
   - `scripts/bootstrap-aws.sh`
+  - `scripts/setup-github-oidc.ps1`
   - `scripts/start-demo.ps1`
   - `scripts/stop-demo.ps1`
 

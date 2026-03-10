@@ -72,8 +72,10 @@ Limitation:
 - Your local stack uses MySQL + Redis, but cloud cost can increase if equivalents are always on.
 
 Fix:
-- For a demo-only system, prefer no always-on managed DB/cache unless strictly required.
-- If required, keep smallest sizes and auto-stop patterns where possible.
+- Cloud-lite fallback is now added in app code:
+  - SQL auto-config is disabled by default.
+  - Redis writes/reads gracefully fall back to in-memory cache.
+- For demo-only operation, avoid always-on managed DB/cache unless strictly required.
 
 ### 5) Operational safety
 Limitation:

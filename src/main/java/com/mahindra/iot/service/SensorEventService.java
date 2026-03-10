@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +34,8 @@ public class SensorEventService {
     private static final String LIVE_KEY   = "live:events";
     private static final String ALERTS_KEY = "alerts:latest";
     private static final int    MAX_LIVE   = 50;
+    private final Deque<SensorEvent> liveFallback = new ConcurrentLinkedDeque<>();
+    private final Map<String, Alert> alertsFallback = new ConcurrentHashMap<>();
 
     @CacheEvict(value = {"live-dashboard", "device-stats"}, allEntries = true)
     public SensorEvent ingestEvent(SensorIngestRequest req) {
@@ -73,9 +77,8 @@ public class SensorEventService {
         // 3. Save to DynamoDB
         repository.save(event);
 
-        // 4. Push to Redis live stream
-        redisTemplate.opsForList().leftPush(LIVE_KEY, event);
-        redisTemplate.opsForList().trim(LIVE_KEY, 0, MAX_LIVE - 1);
+        // 4. Push to cache (Redis + in-memory fallback)
+        cacheLiveEvent(event);
 
         // 5. Fire alert if threshold breached
         if ("WARNING".equals(status) || "CRITICAL".equals(status)) {
@@ -115,15 +118,22 @@ public class SensorEventService {
         event.setSqsMessageId(sqsId);
         repository.save(event);
 
-        redisTemplate.opsForHash().put(ALERTS_KEY, event.getDeviceId(), alert);
+        cacheAlert(event.getDeviceId(), alert);
         log.warn("ALERT: alertId={}, device={}, severity={}, riskScore={}",
                 alertId, event.getDeviceId(), event.getStatus(), event.getAiRiskScore());
     }
 
     @Cacheable("live-dashboard")
     public List<Object> getLiveDashboard() {
-        List<Object> events = redisTemplate.opsForList().range(LIVE_KEY, 0, MAX_LIVE - 1);
-        return events != null ? events : Collections.emptyList();
+        try {
+            List<Object> events = redisTemplate.opsForList().range(LIVE_KEY, 0, MAX_LIVE - 1);
+            if (events != null && !events.isEmpty()) {
+                return events;
+            }
+        } catch (Exception e) {
+            log.debug("Redis live dashboard unavailable, serving in-memory fallback: {}", e.getMessage());
+        }
+        return liveFallback.stream().map(e -> (Object) e).toList();
     }
 
     @Cacheable(value = "device-stats", key = "#deviceId")
@@ -144,10 +154,44 @@ public class SensorEventService {
 
     @Cacheable("alert-history")
     public Map<Object, Object> getAlertHistory() {
-        return redisTemplate.opsForHash().entries(ALERTS_KEY);
+        try {
+            Map<Object, Object> alerts = redisTemplate.opsForHash().entries(ALERTS_KEY);
+            if (alerts != null && !alerts.isEmpty()) {
+                return alerts;
+            }
+        } catch (Exception e) {
+            log.debug("Redis alert history unavailable, serving in-memory fallback: {}", e.getMessage());
+        }
+
+        Map<Object, Object> copy = new HashMap<>();
+        alertsFallback.forEach(copy::put);
+        return copy;
     }
 
     public List<SensorEvent> getDeviceHistory(String deviceId) {
         return repository.findByDeviceId(deviceId);
+    }
+
+    private void cacheLiveEvent(SensorEvent event) {
+        liveFallback.addFirst(event);
+        while (liveFallback.size() > MAX_LIVE) {
+            liveFallback.pollLast();
+        }
+
+        try {
+            redisTemplate.opsForList().leftPush(LIVE_KEY, event);
+            redisTemplate.opsForList().trim(LIVE_KEY, 0, MAX_LIVE - 1);
+        } catch (Exception e) {
+            log.debug("Redis live cache write failed, using in-memory fallback only: {}", e.getMessage());
+        }
+    }
+
+    private void cacheAlert(String deviceId, Alert alert) {
+        alertsFallback.put(deviceId, alert);
+        try {
+            redisTemplate.opsForHash().put(ALERTS_KEY, deviceId, alert);
+        } catch (Exception e) {
+            log.debug("Redis alert cache write failed, using in-memory fallback only: {}", e.getMessage());
+        }
     }
 }
