@@ -8,6 +8,11 @@ on:
         required: true
         default: "ap-south-1"
         type: string
+      aws_role_to_assume:
+        description: "Optional IAM role ARN for OIDC (recommended)"
+        required: false
+        default: ""
+        type: string
       ecs_cluster:
         description: "ECS cluster name"
         required: true
@@ -34,11 +39,21 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ inputs.aws_role_to_assume != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ inputs.aws_role_to_assume }}
+          role-session-name: gh-mobile-deploy
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Configure AWS credentials (static keys fallback)
+        if: ${{ inputs.aws_role_to_assume == '' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}

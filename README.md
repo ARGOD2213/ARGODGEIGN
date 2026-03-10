@@ -151,8 +151,14 @@ This repo now includes GitHub Actions workflows you can run from the GitHub mobi
 - `.github/workflows/mobile-ecs-control.yml`
 - `.github/workflows/mobile-deploy-ecs.yml`
 - `.github/workflows/mobile-cloudwatch-logs.yml`
+- `.github/workflows/mobile-cost-snapshot.yml`
 
-Before using them, add GitHub Actions secrets in repo settings:
+Recommended auth mode: OIDC role assumption (no long-lived AWS keys).
+Setup helper script:
+
+- `scripts/setup-github-oidc.ps1`
+
+Fallback mode (if OIDC is not ready yet): add GitHub Actions secrets:
 
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
@@ -165,3 +171,6 @@ Then in GitHub app:
 
 Detailed step-by-step mobile guide:
 - `docs/MOBILE_OPERATIONS_PLAYBOOK.md`
+
+Cost and live-readiness guide:
+- `docs/COST_LIMITATIONS_AND_LIVE_READINESS.md`

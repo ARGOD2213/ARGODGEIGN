@@ -18,17 +18,20 @@ If your main requirement is server control, keep production on ECS and use the w
 ## One-time setup (5-10 minutes)
 1. Open your GitHub repo:
    - `https://github.com/ARGOD2213/ARGODGEIGN`
-2. Go to:
+2. Recommended (secure): configure OIDC role from your laptop once:
+   - `.\scripts\setup-github-oidc.ps1 -AwsRegion ap-south-1 -AwsAccountId <account-id> -GitHubOwner ARGOD2213 -GitHubRepo ARGODGEIGN -GitHubBranch master`
+3. Go to:
    - `Settings -> Secrets and variables -> Actions -> New repository secret`
-3. Add required secrets:
+4. Add fallback secrets only if you are not using OIDC:
    - `AWS_ACCESS_KEY_ID`
    - `AWS_SECRET_ACCESS_KEY`
-4. (Optional but recommended later) move to IAM Role + OIDC instead of long-lived keys.
+5. In each workflow run, pass `aws_role_to_assume` with your IAM role ARN for OIDC mode.
 
 ## Mobile workflows added in this repo
 - `.github/workflows/mobile-ecs-control.yml`
 - `.github/workflows/mobile-deploy-ecs.yml`
 - `.github/workflows/mobile-cloudwatch-logs.yml`
+- `.github/workflows/mobile-cost-snapshot.yml`
 
 ## How to start/stop server from phone
 1. Open GitHub mobile app.
@@ -39,6 +42,7 @@ If your main requirement is server control, keep production on ECS and use the w
 6. Fill:
    - `action`: `start` or `stop` or `restart` or `status`
    - `aws_region`: `ap-south-1`
+   - `aws_role_to_assume`: your OIDC role ARN (recommended)
    - `ecs_cluster`: your cluster (default `iot-cluster`)
    - `ecs_service`: your service (default `iot-api`)
    - `desired_count`: usually `1` for start
@@ -50,6 +54,7 @@ If your main requirement is server control, keep production on ECS and use the w
 3. Tap `Run workflow`.
 4. Fill:
    - `aws_region`
+   - `aws_role_to_assume`
    - `ecs_cluster`
    - `ecs_service`
    - `ecr_repo`
@@ -60,6 +65,7 @@ If your main requirement is server control, keep production on ECS and use the w
 Option A: GitHub workflow snapshot
 1. Actions -> `Mobile CloudWatch Logs Snapshot`.
 2. Run with:
+   - `aws_role_to_assume`
    - `log_group` (example `/ecs/iot-api`)
    - `lookback_minutes` (example `120`)
    - `limit` (example `200`)
@@ -68,6 +74,16 @@ Option A: GitHub workflow snapshot
 Option B: Direct AWS app/console
 - Use AWS Console mobile browser for CloudWatch logs.
 - Faster for live investigation if you already have IAM access on phone.
+
+## How to check current AWS cost from phone
+1. Actions -> `Mobile Cost Snapshot`.
+2. Run with:
+   - `aws_role_to_assume`
+   - `monthly_budget_usd` (use `23.33` for your 6-month target)
+3. Open summary for:
+   - total month spend so far
+   - budget used percent
+   - top cost-driving AWS services
 
 ## How to commit from phone
 Option A (quick edits)
