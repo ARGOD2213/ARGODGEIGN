@@ -81,6 +81,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "target/iot-alert-engine-2.0.0.jar,deploy/app.env"
           target: "/home/ec2-user"
+          strip_components: 1
 
       - name: Start app on EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -94,15 +95,21 @@ jobs:
             mkdir -p /home/ec2-user/argodreign-run
             cd /home/ec2-user/argodreign-run
 
-            # Handle paths created by scp action
-            if [ -f /home/ec2-user/target/iot-alert-engine-2.0.0.jar ]; then
-              cp /home/ec2-user/target/iot-alert-engine-2.0.0.jar /home/ec2-user/argodreign-run/iot-alert-engine-2.0.0.jar
+            # Resolve uploaded files robustly (mobile runs can vary in path structure)
+            JAR_SRC=$(find /home/ec2-user -maxdepth 5 -type f -name "iot-alert-engine-2.0.0.jar" | head -n 1 || true)
+            ENV_SRC=$(find /home/ec2-user -maxdepth 5 -type f -name "app.env" | head -n 1 || true)
+            if [ -z "$JAR_SRC" ]; then
+              echo "ERROR: iot-alert-engine-2.0.0.jar not found under /home/ec2-user"
+              find /home/ec2-user -maxdepth 5 -type f | sed 's/^/FOUND: /'
+              exit 1
             fi
-            if [ -f /home/ec2-user/deploy/app.env ]; then
-              cp /home/ec2-user/deploy/app.env /home/ec2-user/argodreign-run/app.env.runtime
-            elif [ -f /home/ec2-user/argodreign-run/app.env ]; then
-              mv /home/ec2-user/argodreign-run/app.env /home/ec2-user/argodreign-run/app.env.runtime
+            if [ -z "$ENV_SRC" ]; then
+              echo "ERROR: app.env not found under /home/ec2-user"
+              find /home/ec2-user -maxdepth 5 -type f | sed 's/^/FOUND: /'
+              exit 1
             fi
+            cp "$JAR_SRC" /home/ec2-user/argodreign-run/iot-alert-engine-2.0.0.jar
+            cp "$ENV_SRC" /home/ec2-user/argodreign-run/app.env.runtime
 
             set -a
             . ./app.env.runtime
@@ -110,7 +117,11 @@ jobs:
             pkill -f iot-alert-engine-2.0.0.jar || true
             nohup java -jar iot-alert-engine-2.0.0.jar > app.log 2>&1 &
             sleep 20
-            pgrep -af iot-alert-engine-2.0.0.jar
+            if ! pgrep -af iot-alert-engine-2.0.0.jar; then
+              echo "ERROR: app process did not start. Last app.log lines:"
+              tail -n 120 /home/ec2-user/argodreign-run/app.log || true
+              exit 1
+            fi
 
       - name: Print live URLs
         run: |
