@@ -75,17 +75,14 @@ INSTANCE_ID=$(aws ec2 run-instances \
   --image-id "$AMI_ID" \
   --instance-type t3.micro \
   --key-name "$KEY_PAIR_NAME" \
+  --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":12,"VolumeType":"gp3","DeleteOnTermination":true}}]' \
   --security-group-ids "$SG_ID" \
   --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${INSTANCE_NAME}}]" \
   --user-data '#!/bin/bash
     yum update -y
-    yum install -y docker git
-    systemctl start docker
-    systemctl enable docker
-    usermod -aG docker ec2-user
-    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
-      -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose' \
+    yum install -y java-17-amazon-corretto-headless git
+    mkdir -p /home/ec2-user/argodreign-run
+    chown -R ec2-user:ec2-user /home/ec2-user/argodreign-run' \
   --region "$AWS_REGION" \
   --query 'Instances[0].InstanceId' --output text)
 
