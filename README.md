@@ -1,5 +1,26 @@
 # ARGODREIGN IoT Alert Engine
 
+## 📱 Start/Stop from Phone
+
+Step 1 (one time on laptop):
+```bash
+bash scripts/setup-ec2.sh
+```
+- Note the `EC2_INSTANCE_ID` printed by script.
+- Add all secrets listed in `docs/GITHUB_SECRETS_SETUP.md`.
+
+Step 2 (from phone anytime):
+- GitHub app -> Actions -> `📱 START IoT Server` -> Run workflow
+- Wait ~3 minutes -> open URL from workflow summary
+
+Step 3 (after demo — ALWAYS DO THIS):
+- GitHub app -> Actions -> `📱 STOP IoT Server` -> Run workflow
+- Stops billing immediately
+
+Cost target: `~$7 total for 6 months` at `~1 hr/day` usage.
+
+> Budget note: For this repository's demo budget mode, use EC2 start/stop workflows and avoid always-on ECS/ALB.
+
 Production IoT monitoring backend with:
 - 22 sensor threshold evaluation
 - Weather-aware enrichment (OpenWeatherMap)
@@ -76,7 +97,7 @@ This creates:
 - SNS topic `iot-alerts`
 - SQS FIFO queue + DLQ
 
-## 4. Deploy container to ECS
+## 4. Legacy ECS deployment (not recommended for this budget mode)
 
 PowerShell example:
 ```powershell
@@ -94,7 +115,7 @@ Script will:
 2. Push image to ECR
 3. Force ECS rolling deployment
 
-## 5. Run only on demo days (budget mode)
+## 5. Legacy ECS demo control scripts
 
 Start demo service:
 ```powershell
@@ -148,36 +169,12 @@ Prediction:
 curl "http://localhost:8080/api/v1/device/MOTOR-01/prediction?forecastSteps=8"
 ```
 
-## 8. Mobile-first operations (start/stop/deploy/logs from phone)
+## 8. Mobile workflows (recommended)
 
-This repo now includes GitHub Actions workflows you can run from the GitHub mobile app:
+Use these workflows from GitHub mobile app:
 
-- `.github/workflows/mobile-ecs-control.yml`
-- `.github/workflows/mobile-deploy-ecs.yml`
-- `.github/workflows/mobile-cloudwatch-logs.yml`
-- `.github/workflows/mobile-cost-snapshot.yml`
+- `.github/workflows/start-server.yml`
+- `.github/workflows/stop-server.yml`
 
-Recommended auth mode: OIDC role assumption (no long-lived AWS keys).
-Setup helper script:
-
-- `scripts/setup-github-oidc.ps1`
-
-Fallback mode (if OIDC is not ready yet): add GitHub Actions secrets:
-
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-
-Then in GitHub app:
-
-1. Open repo -> `Actions`
-2. Pick workflow
-3. Tap `Run workflow`
-4. For demo start/stop:
-   - Run `Mobile ECS Control` with `action=start`, then open `Health URL` from summary
-   - After demo, run `Mobile ECS Control` with `action=stop`
-
-Detailed step-by-step mobile guide:
-- `docs/MOBILE_OPERATIONS_PLAYBOOK.md`
-
-Cost and live-readiness guide:
-- `docs/COST_LIMITATIONS_AND_LIVE_READINESS.md`
+Detailed one-time secrets setup:
+- `docs/GITHUB_SECRETS_SETUP.md`

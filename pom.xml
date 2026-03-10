@@ -23,6 +23,7 @@
     </properties>
 
     <dependencies>
+        <!-- Scheduling support comes from Spring Framework in starter-web; no separate spring-boot-starter-scheduling artifact -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>

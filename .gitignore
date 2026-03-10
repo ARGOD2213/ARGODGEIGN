@@ -8,3 +8,4 @@ out.json
 *.iml
 .DS_Store
 ~$*.docx
+*.pem

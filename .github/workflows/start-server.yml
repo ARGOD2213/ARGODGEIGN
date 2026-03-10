@@ -1,0 +1,101 @@
+name: "📱 START IoT Server"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  start:
+    name: Start EC2 and Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Start EC2 instance
+        run: |
+          aws ec2 start-instances \
+            --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
+            --region ap-south-1
+          echo "⏳ Waiting for EC2 to start..."
+          aws ec2 wait instance-running \
+            --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
+            --region ap-south-1
+          echo "✅ EC2 is running"
+
+      - name: Get EC2 public IP
+        id: get-ip
+        run: |
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text --region ap-south-1)
+          echo "public_ip=$PUBLIC_IP" >> "$GITHUB_OUTPUT"
+          echo "EC2 Public IP: $PUBLIC_IP"
+
+      - name: Wait for EC2 to be ready
+        run: sleep 60
+
+      - name: Deploy Docker containers on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ steps.get-ip.outputs.public_ip }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ec2-user
+
+            # Pull latest code
+            if [ -d "ARGODGEIGN" ]; then
+              cd ARGODGEIGN && git pull origin master
+            else
+              git clone https://github.com/ARGOD2213/ARGODGEIGN.git
+              cd ARGODGEIGN
+            fi
+
+            # Write .env file from GitHub Secrets
+            cat > .env << EOF
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_REGION=ap-south-1
+            AWS_SNS_TOPIC_ARN=arn:aws:sns:ap-south-1:061039801536:iot-alerts
+            AWS_SQS_QUEUE_URL=https://sqs.ap-south-1.amazonaws.com/061039801536/iot-events.fifo
+            AWS_SQS_DLQ_URL=https://sqs.ap-south-1.amazonaws.com/061039801536/iot-events-dlq.fifo
+            WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            ANTHROPIC_API_KEY=
+            OPENAI_API_KEY=
+            AI_ANALYSIS_ENABLED=true
+            SIMULATOR_ENABLED=false
+            EOF
+
+            # Start containers
+            docker-compose down 2>/dev/null || true
+            docker-compose up --build -d
+
+            echo "✅ Containers started"
+            docker ps
+
+      - name: Print live URLs
+        run: |
+          PUBLIC_IP=${{ steps.get-ip.outputs.public_ip }}
+          {
+            echo "## 🚀 ARGODREIGN IS LIVE"
+            echo ""
+            echo "- Dashboard: http://$PUBLIC_IP:8080/"
+            echo "- Health: http://$PUBLIC_IP:8080/api/v1/health"
+            echo "- Swagger: http://$PUBLIC_IP:8080/swagger-ui.html"
+            echo "- Alerts: http://$PUBLIC_IP:8080/api/v1/alerts/history"
+            echo ""
+            echo "💡 Open these URLs on your phone browser."
+            echo "💡 Run STOP workflow after demo to stop billing."
+          } >> "$GITHUB_STEP_SUMMARY"
