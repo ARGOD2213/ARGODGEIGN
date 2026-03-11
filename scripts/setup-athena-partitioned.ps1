@@ -4,6 +4,8 @@ param(
     [string]$Table = "sensor_events_partitioned",
     [string]$DataLocation = "s3://iot-alert-engine-mahindra/data/partitioned/sensor_events/",
     [string]$AthenaResults = "s3://iot-alert-engine-mahindra/athena-results/",
+    [switch]$UseCtas,
+    [string]$SourceTable = "industrial_dummy_events",
     [switch]$DropTable
 )
 
@@ -66,6 +68,17 @@ function Invoke-AthenaQuery {
     }
 }
 
+function Invoke-AwsCli {
+    param(
+        [Parameter(Mandatory = $true)] [string[]]$Arguments
+    )
+
+    & aws @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "AWS CLI command failed (exit $LASTEXITCODE): aws $($Arguments -join ' ')"
+    }
+}
+
 if (-not $DataLocation.EndsWith("/")) { $DataLocation = "$DataLocation/" }
 if (-not $AthenaResults.EndsWith("/")) { $AthenaResults = "$AthenaResults/" }
 
@@ -75,8 +88,10 @@ Write-Host "Database: $Database"
 Write-Host "Table: $Table"
 Write-Host "Data location: $DataLocation"
 Write-Host "Results location: $AthenaResults"
+$mode = if ($UseCtas) { "CTAS from $SourceTable" } else { "EXTERNAL TABLE + MSCK REPAIR" }
+Write-Host "Mode: $mode"
 
-$null = aws s3 ls $AthenaResults --region $Region
+Invoke-AwsCli -Arguments @("s3", "ls", "$AthenaResults", "--region", "$Region")
 
 $qCreateDb = "CREATE DATABASE IF NOT EXISTS $Database"
 $qidDb = Invoke-AthenaQuery -Query $qCreateDb -Region $Region -OutputLocation $AthenaResults
@@ -88,7 +103,66 @@ if ($DropTable) {
     Write-Host "Dropped table (if existed). QueryExecutionId: $qidDrop"
 }
 
-$qCreateTable = @"
+if ($UseCtas) {
+    Write-Host "Cleaning target S3 prefix before CTAS: $DataLocation"
+    Invoke-AwsCli -Arguments @("s3", "rm", "$DataLocation", "--recursive", "--region", "$Region")
+
+    $qCreateCtas = @"
+CREATE TABLE $Database.$Table
+WITH (
+  format = 'PARQUET',
+  parquet_compression = 'SNAPPY',
+  external_location = '$DataLocation',
+  partitioned_by = ARRAY['year','month','day','machine_class']
+) AS
+SELECT
+  event_id,
+  event_timestamp,
+  facility_id,
+  area,
+  cell_name,
+  machine_id,
+  product_stream,
+  sensor_type,
+  sensor_category,
+  unit,
+  value,
+  status,
+  warning_threshold,
+  critical_threshold,
+  min_value,
+  max_value,
+  avg_value,
+  delta_from_previous,
+  weather_temp_c,
+  weather_humidity_pct,
+  weather_condition,
+  weather_wind_speed_ms,
+  weather_correlation_note,
+  weather_alert_active,
+  ai_risk_score,
+  ai_risk_level,
+  llm_consensus,
+  ai_incident_summary,
+  ai_recommended_action,
+  ai_predicted_failure_eta,
+  sns_message_id,
+  sqs_message_id,
+  latitude,
+  longitude,
+  date_format(from_iso8601_timestamp(event_timestamp), '%Y') AS year,
+  date_format(from_iso8601_timestamp(event_timestamp), '%m') AS month,
+  date_format(from_iso8601_timestamp(event_timestamp), '%d') AS day,
+  lower(regexp_replace(coalesce(machine_class, 'unknown'), '[^A-Za-z0-9_-]', '_')) AS machine_class
+FROM $Database.$SourceTable
+WHERE event_timestamp IS NOT NULL
+"@
+
+    $qidTable = Invoke-AthenaQuery -Query $qCreateCtas -Region $Region -OutputLocation $AthenaResults -Database $Database
+    Write-Host "CTAS table created. QueryExecutionId: $qidTable"
+}
+else {
+    $qCreateTable = @"
 CREATE EXTERNAL TABLE IF NOT EXISTS $Database.$Table (
   event_id BIGINT,
   event_timestamp STRING,
@@ -143,12 +217,13 @@ TBLPROPERTIES (
 )
 "@
 
-$qidTable = Invoke-AthenaQuery -Query $qCreateTable -Region $Region -OutputLocation $AthenaResults -Database $Database
-Write-Host "Table ensured. QueryExecutionId: $qidTable"
+    $qidTable = Invoke-AthenaQuery -Query $qCreateTable -Region $Region -OutputLocation $AthenaResults -Database $Database
+    Write-Host "Table ensured. QueryExecutionId: $qidTable"
 
-$qRepair = "MSCK REPAIR TABLE $Database.$Table"
-$qidRepair = Invoke-AthenaQuery -Query $qRepair -Region $Region -OutputLocation $AthenaResults -Database $Database
-Write-Host "Partition metadata repaired. QueryExecutionId: $qidRepair"
+    $qRepair = "MSCK REPAIR TABLE $Database.$Table"
+    $qidRepair = Invoke-AthenaQuery -Query $qRepair -Region $Region -OutputLocation $AthenaResults -Database $Database
+    Write-Host "Partition metadata repaired. QueryExecutionId: $qidRepair"
+}
 
 $qValidate = @"
 SELECT

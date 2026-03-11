@@ -5,6 +5,7 @@ import com.mahindra.iot.model.SensorEvent;
 import com.mahindra.iot.service.DashboardService;
 import com.mahindra.iot.service.PredictiveMaintenanceService;
 import com.mahindra.iot.service.SensorEventService;
+import com.mahindra.iot.util.AiAdvisoryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,18 +33,19 @@ public class SensorController {
                description = "Accepts sensor payload, evaluates 22-sensor thresholds, runs Weather AI + Gemini LLM analysis, fires SNS/SQS alerts, persists to DynamoDB")
     public ResponseEntity<Map<String, Object>> ingestEvent(@Valid @RequestBody SensorIngestRequest request) {
         SensorEvent event = sensorEventService.ingestEvent(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-            "message",       "Event ingested successfully",
-            "deviceId",      event.getDeviceId(),
-            "timestamp",     event.getTimestamp(),
-            "sensorType",    event.getSensorType(),
-            "value",         event.getValue(),
-            "status",        event.getStatus(),
-            "alertFired",    event.getAlertId() != null,
-            "aiRiskScore",   event.getAiRiskScore() != null ? event.getAiRiskScore() : "N/A",
-            "weatherNote",   event.getWeatherCorrelationNote() != null ? event.getWeatherCorrelationNote() : "N/A",
-            "llmConsensus",  event.getLlmConsensus() != null ? event.getLlmConsensus() : "NONE"
-        ));
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("message", "Event ingested successfully");
+        response.put("deviceId", event.getDeviceId());
+        response.put("timestamp", event.getTimestamp());
+        response.put("sensorType", event.getSensorType());
+        response.put("value", event.getValue());
+        response.put("status", event.getStatus());
+        response.put("alertFired", event.getAlertId() != null);
+        response.put("aiRiskScore", event.getAiRiskScore() != null ? event.getAiRiskScore() : "N/A");
+        response.put("weatherNote", event.getWeatherCorrelationNote() != null ? event.getWeatherCorrelationNote() : "N/A");
+        response.put("llmConsensus", event.getLlmConsensus() != null ? event.getLlmConsensus() : "NONE");
+        response.put("aiAdvisory", AiAdvisoryWrapper.fromEvent(event));
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/dashboard/live")

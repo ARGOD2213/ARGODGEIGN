@@ -22,6 +22,7 @@ RULES_BUCKET = os.environ.get("RULES_BUCKET", "iot-alert-engine-mahindra")
 RULES_KEY = os.environ.get("RULES_KEY", "config/rules.json")
 SNS_TOPIC_ARN = os.environ.get("SNS_TOPIC_ARN", "")
 DEDUP_TABLE = os.environ.get("DEDUP_TABLE", "")
+ALERT_TABLE = os.environ.get("ALERT_TABLE", "iot-sensor-events")
 PUBLISH_MIN_SEVERITY_ENV = os.environ.get("PUBLISH_MIN_SEVERITY", "").upper()
 DEDUP_WINDOW_ENV = os.environ.get("DEDUP_WINDOW_SECONDS", "")
 
@@ -73,10 +74,32 @@ def _load_rules_config(force_refresh: bool = False) -> Dict[str, Any]:
 
 
 def _extract_payload(record_or_event: Dict[str, Any]) -> Dict[str, Any]:
+    def _parse_json_dict(text: str) -> Dict[str, Any]:
+        candidates = [text]
+        stripped = text.strip()
+        if stripped.startswith("'") and stripped.endswith("'") and len(stripped) > 1:
+            candidates.append(stripped[1:-1])
+        candidates.append(stripped.replace('\\"', '"'))
+        candidates.append(stripped.replace("'", '"'))
+
+        for candidate in candidates:
+            try:
+                parsed = json.loads(candidate)
+                if isinstance(parsed, str):
+                    nested = json.loads(parsed)
+                    if isinstance(nested, dict):
+                        return nested
+                if isinstance(parsed, dict):
+                    return parsed
+            except json.JSONDecodeError:
+                continue
+
+        raise json.JSONDecodeError("Unable to parse record body into JSON object", text, 0)
+
     if "body" in record_or_event:
         body = record_or_event.get("body", "{}")
         if isinstance(body, str):
-            payload = json.loads(body)
+            payload = _parse_json_dict(body)
         elif isinstance(body, dict):
             payload = body
         else:
@@ -214,6 +237,7 @@ def _dedup_pass(dedup_key: str, window_seconds: int) -> bool:
 def _build_alert(event: Dict[str, Any], matched_rules: List[Dict[str, Any]]) -> Dict[str, Any]:
     top_rule = _pick_highest_severity_rule(matched_rules)
     severity = _upper_or_empty(top_rule.get("severity"))
+    threshold = _to_float(top_rule.get("threshold")) or 0.0
     now_iso = datetime.now(timezone.utc).isoformat()
     alert_id = f"{event['machine_id']}:{event['sensor_type']}:{int(time.time())}"
 
@@ -228,6 +252,8 @@ def _build_alert(event: Dict[str, Any], matched_rules: List[Dict[str, Any]]) -> 
         "sensor_unit": event["sensor_unit"],
         "plant_zone": event["plant_zone"],
         "event_timestamp": event["timestamp"],
+        "warning_threshold": threshold,
+        "critical_threshold": threshold,
         "title": top_rule.get("title", "Rule threshold matched"),
         "recommendation": top_rule.get("recommendation", "Review asset immediately."),
         "reference": top_rule.get("reference", ""),
@@ -248,6 +274,30 @@ def _publish_alert(alert: Dict[str, Any]) -> str:
         Message=json.dumps(alert, default=str)
     )
     return response.get("MessageId", "")
+
+
+def _persist_alert(alert: Dict[str, Any]) -> None:
+    DDB_CLIENT.put_item(
+        TableName=ALERT_TABLE,
+        Item={
+            "deviceId": {"S": str(alert["machine_id"])},
+            "timestamp": {"S": str(alert["generated_at"])},
+            "sensorType": {"S": str(alert["sensor_type"])},
+            "sensorCategory": {"S": "RuleEngine"},
+            "unit": {"S": str(alert.get("sensor_unit", ""))},
+            "value": {"N": str(alert.get("sensor_value", 0.0))},
+            "status": {"S": str(alert["severity"])},
+            "location": {"S": str(alert.get("plant_zone", ""))},
+            "facilityId": {"S": "FACTORY-HYD-001"},
+            "processedAt": {"S": str(alert["generated_at"])},
+            "alertId": {"S": str(alert["alert_id"])},
+            "warningThreshold": {"N": str(alert.get("warning_threshold", 0.0))},
+            "criticalThreshold": {"N": str(alert.get("critical_threshold", 0.0))},
+            "aiIncidentSummary": {"S": "[AI ADVISORY | Not a control action | Rule engine has final authority]"},
+            "aiRiskScore": {"N": "0"},
+            "llmConsensus": {"S": "RULE_ENGINE_ONLY"}
+        }
+    )
 
 
 def _iter_records(event: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -296,6 +346,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 continue
 
             message_id = _publish_alert(alert)
+            _persist_alert(alert)
             summary["alerts_published"] += 1
             LOGGER.info("Published alert %s (%s)", message_id, alert["alert_id"])
 

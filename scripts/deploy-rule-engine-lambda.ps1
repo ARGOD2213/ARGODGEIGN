@@ -9,6 +9,7 @@ param(
     [string]$CodeFilePath = "C:\Users\pavan\Desktop\ARGODREIGN\lambda\rule_engine\handler.py",
     [string]$SnsTopicArn = "arn:aws:sns:ap-south-1:061039801536:iot-alerts",
     [string]$DedupTable = "argodreign-dedup",
+    [string]$AlertTable = "iot-sensor-events",
     [int]$Timeout = 30,
     [int]$MemorySize = 256,
     [string]$RoleArn = "",
@@ -18,6 +19,36 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Invoke-AwsCli {
+    param(
+        [Parameter(Mandatory = $true)] [string[]]$Arguments,
+        [switch]$IgnoreExitCode
+    )
+
+    & aws @Arguments
+    $exitCode = $LASTEXITCODE
+    if (-not $IgnoreExitCode -and $exitCode -ne 0) {
+        throw "AWS CLI command failed (exit $exitCode): aws $($Arguments -join ' ')"
+    }
+    return $exitCode
+}
+
+function Test-LambdaExists {
+    param(
+        [Parameter(Mandatory = $true)] [string]$Name,
+        [Parameter(Mandatory = $true)] [string]$AwsRegion
+    )
+
+    $null = Invoke-AwsCli -Arguments @(
+        "lambda", "get-function",
+        "--function-name", $Name,
+        "--region", $AwsRegion,
+        "--output", "json"
+    ) -IgnoreExitCode
+
+    return ($LASTEXITCODE -eq 0)
+}
+
 if (-not (Test-Path $RulesFilePath)) {
     throw "Rules file not found: $RulesFilePath"
 }
@@ -26,7 +57,12 @@ if (-not (Test-Path $CodeFilePath)) {
 }
 
 Write-Host "Uploading rules config to S3..."
-aws s3 cp "$RulesFilePath" "s3://$RulesBucket/$RulesKey" --region "$Region"
+Invoke-AwsCli -Arguments @(
+    "s3", "cp",
+    "$RulesFilePath",
+    "s3://$RulesBucket/$RulesKey",
+    "--region", "$Region"
+) | Out-Null
 
 $tmpDir = Join-Path $env:TEMP ("argodreign-rule-engine-" + [guid]::NewGuid().ToString("N"))
 $null = New-Item -ItemType Directory -Path $tmpDir -Force
@@ -36,29 +72,27 @@ try {
     Copy-Item $CodeFilePath (Join-Path $tmpDir "handler.py") -Force
     Compress-Archive -Path (Join-Path $tmpDir "handler.py") -DestinationPath $zipPath -Force
 
-    $exists = $true
-    try {
-        aws lambda get-function --function-name "$FunctionName" --region "$Region" --output json | Out-Null
-    }
-    catch {
-        $exists = $false
-    }
+    $exists = Test-LambdaExists -Name $FunctionName -AwsRegion $Region
 
     if ($exists) {
         Write-Host "Updating existing Lambda function: $FunctionName"
-        aws lambda update-function-code `
-            --function-name "$FunctionName" `
-            --zip-file "fileb://$zipPath" `
-            --region "$Region" | Out-Null
+        Invoke-AwsCli -Arguments @(
+            "lambda", "update-function-code",
+            "--function-name", "$FunctionName",
+            "--zip-file", "fileb://$zipPath",
+            "--region", "$Region"
+        ) | Out-Null
 
-        aws lambda update-function-configuration `
-            --function-name "$FunctionName" `
-            --handler "$Handler" `
-            --runtime "$Runtime" `
-            --timeout $Timeout `
-            --memory-size $MemorySize `
-            --environment "Variables={RULES_BUCKET=$RulesBucket,RULES_KEY=$RulesKey,SNS_TOPIC_ARN=$SnsTopicArn,DEDUP_TABLE=$DedupTable}" `
-            --region "$Region" | Out-Null
+        Invoke-AwsCli -Arguments @(
+            "lambda", "update-function-configuration",
+            "--function-name", "$FunctionName",
+            "--handler", "$Handler",
+            "--runtime", "$Runtime",
+            "--timeout", "$Timeout",
+            "--memory-size", "$MemorySize",
+            "--environment", "Variables={RULES_BUCKET=$RulesBucket,RULES_KEY=$RulesKey,SNS_TOPIC_ARN=$SnsTopicArn,DEDUP_TABLE=$DedupTable,ALERT_TABLE=$AlertTable}",
+            "--region", "$Region"
+        ) | Out-Null
     }
     else {
         if (-not $CreateIfMissing) {
@@ -69,16 +103,18 @@ try {
         }
 
         Write-Host "Creating new Lambda function: $FunctionName"
-        aws lambda create-function `
-            --function-name "$FunctionName" `
-            --runtime "$Runtime" `
-            --handler "$Handler" `
-            --role "$RoleArn" `
-            --zip-file "fileb://$zipPath" `
-            --timeout $Timeout `
-            --memory-size $MemorySize `
-            --environment "Variables={RULES_BUCKET=$RulesBucket,RULES_KEY=$RulesKey,SNS_TOPIC_ARN=$SnsTopicArn,DEDUP_TABLE=$DedupTable}" `
-            --region "$Region" | Out-Null
+        Invoke-AwsCli -Arguments @(
+            "lambda", "create-function",
+            "--function-name", "$FunctionName",
+            "--runtime", "$Runtime",
+            "--handler", "$Handler",
+            "--role", "$RoleArn",
+            "--zip-file", "fileb://$zipPath",
+            "--timeout", "$Timeout",
+            "--memory-size", "$MemorySize",
+            "--environment", "Variables={RULES_BUCKET=$RulesBucket,RULES_KEY=$RulesKey,SNS_TOPIC_ARN=$SnsTopicArn,DEDUP_TABLE=$DedupTable,ALERT_TABLE=$AlertTable}",
+            "--region", "$Region"
+        ) | Out-Null
     }
 }
 finally {

@@ -12,6 +12,22 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+function Invoke-AwsCli {
+    param(
+        [Parameter(Mandatory = $true)] [string[]]$Arguments,
+        [switch]$IgnoreExitCode
+    )
+
+    & aws @Arguments
+    $exitCode = $LASTEXITCODE
+    if (-not $IgnoreExitCode -and $exitCode -ne 0) {
+        throw "AWS CLI command failed (exit $exitCode): aws $($Arguments -join ' ')"
+    }
+    return $exitCode
+}
+
 if ([string]::IsNullOrWhiteSpace($AccountId)) {
     $AccountId = (aws sts get-caller-identity --query Account --output text).Trim()
 }
@@ -74,45 +90,35 @@ New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
 try {
     $budgetPath = Join-Path $tmpDir "budget.json"
     $notificationsPath = Join-Path $tmpDir "notifications.json"
-    $budget | ConvertTo-Json -Depth 8 | Set-Content -Path $budgetPath -Encoding UTF8
-    $notifications | ConvertTo-Json -Depth 10 | Set-Content -Path $notificationsPath -Encoding UTF8
+    [System.IO.File]::WriteAllText($budgetPath, ($budget | ConvertTo-Json -Depth 8), $Utf8NoBom)
+    [System.IO.File]::WriteAllText($notificationsPath, ($notifications | ConvertTo-Json -Depth 10), $Utf8NoBom)
 
-    $budgetExists = $true
-    try {
-        aws budgets describe-budget --account-id "$AccountId" --budget-name "$BudgetName" --region "$Region" | Out-Null
-    } catch {
-        $budgetExists = $false
+    $null = Invoke-AwsCli -Arguments @(
+        "budgets", "describe-budget",
+        "--account-id", "$AccountId",
+        "--budget-name", "$BudgetName",
+        "--region", "$Region"
+    ) -IgnoreExitCode
+    $budgetExists = ($LASTEXITCODE -eq 0)
+
+    if ($budgetExists) {
+        Write-Host "Budget '$BudgetName' already exists. Recreating it with required thresholds."
+        Invoke-AwsCli -Arguments @(
+            "budgets", "delete-budget",
+            "--account-id", "$AccountId",
+            "--budget-name", "$BudgetName",
+            "--region", "$Region"
+        ) | Out-Null
     }
 
-    if (-not $budgetExists) {
-        Write-Host "Creating budget '$BudgetName' for account $AccountId"
-        aws budgets create-budget `
-            --account-id "$AccountId" `
-            --budget "file://$budgetPath" `
-            --notifications-with-subscribers "file://$notificationsPath" `
-            --region "$Region" | Out-Null
-    } else {
-        Write-Host "Budget '$BudgetName' already exists. Updating budget limit only."
-        aws budgets update-budget `
-            --account-id "$AccountId" `
-            --new-budget "file://$budgetPath" `
-            --region "$Region" | Out-Null
-
-        Write-Host "Ensuring warning and critical notifications exist..."
-        foreach ($notificationWithSubscribers in $notifications) {
-            $singlePath = Join-Path $tmpDir ("notification-" + [guid]::NewGuid().ToString("N") + ".json")
-            $notificationWithSubscribers | ConvertTo-Json -Depth 10 | Set-Content -Path $singlePath -Encoding UTF8
-            try {
-                aws budgets create-notification `
-                    --account-id "$AccountId" `
-                    --budget-name "$BudgetName" `
-                    --notification-with-subscribers "file://$singlePath" `
-                    --region "$Region" | Out-Null
-            } catch {
-                Write-Host "Notification may already exist for threshold $($notificationWithSubscribers.Notification.Threshold) USD. Skipping."
-            }
-        }
-    }
+    Write-Host "Creating budget '$BudgetName' for account $AccountId"
+    Invoke-AwsCli -Arguments @(
+        "budgets", "create-budget",
+        "--account-id", "$AccountId",
+        "--budget", "file://$budgetPath",
+        "--notifications-with-subscribers", "file://$notificationsPath",
+        "--region", "$Region"
+    ) | Out-Null
 }
 finally {
     if (Test-Path $tmpDir) {

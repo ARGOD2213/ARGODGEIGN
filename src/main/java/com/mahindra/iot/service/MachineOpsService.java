@@ -2,6 +2,7 @@ package com.mahindra.iot.service;
 
 import com.mahindra.iot.model.SensorEvent;
 import com.mahindra.iot.repository.SensorEventRepository;
+import com.mahindra.iot.util.AiAdvisoryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -179,6 +180,7 @@ public class MachineOpsService {
         alert.put("aiRiskScore", event.getAiRiskScore());
         alert.put("aiSummary", event.getAiIncidentSummary());
         alert.put("weatherNote", event.getWeatherCorrelationNote());
+        alert.put("aiAdvisory", AiAdvisoryWrapper.fromEvent(event));
         return alert;
     }
 
