@@ -289,6 +289,23 @@ function Get-AiPackage {
     }
 }
 
+function Convert-ToCsvField {
+    param($value)
+
+    if ($null -eq $value) {
+        return ""
+    }
+
+    $text = [string]$value
+    if ($text.Contains('"')) {
+        $text = $text.Replace('"', '""')
+    }
+    if ($text.Contains(',') -or $text.Contains('"') -or $text.Contains("`n") -or $text.Contains("`r")) {
+        return '"' + $text + '"'
+    }
+    return $text
+}
+
 $state = @{}
 $header = "event_id,timestamp,facility_id,area,cell_name,machine_id,machine_class,product_stream,sensor_type,sensor_category,unit,value,status,warning_threshold,critical_threshold,min_value,max_value,avg_value,delta_from_previous,weather_temp_c,weather_humidity_pct,weather_condition,weather_wind_speed_ms,weather_correlation_note,weather_alert_active,ai_risk_score,ai_risk_level,llm_consensus,ai_incident_summary,ai_recommended_action,ai_predicted_failure_eta,sns_message_id,sqs_message_id,latitude,longitude"
 
@@ -353,7 +370,7 @@ try {
             $sqsId = [guid]::NewGuid().ToString()
         }
 
-        $row = @(
+        $rowValues = @(
             ($rowCount + 1),
             $timestamp.ToString("yyyy-MM-ddTHH:mm:ssZ"),
             $FacilityId,
@@ -389,7 +406,9 @@ try {
             $sqsId,
             $machine.Latitude,
             $machine.Longitude
-        ) -join ","
+        )
+
+        $row = ($rowValues | ForEach-Object { Convert-ToCsvField $_ }) -join ","
 
         $rowBytes = [System.Text.Encoding]::UTF8.GetByteCount($row) + $newlineBytes
         if (($estimatedBytes + $rowBytes) -gt $targetBytes -and $rowCount -gt 0) {

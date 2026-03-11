@@ -31,6 +31,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\generate-industrial-dump.ps1 
 powershell -ExecutionPolicy Bypass -File .\scripts\upload-industrial-dump.ps1 -FilePath "C:\Users\pavan\Desktop\ARGODREIGN\data\industrial_dummy_1gb.csv" -BucketName "iot-alert-engine-mahindra" -S3Key "data/industrial_dummy_1gb.csv" -Region "ap-south-1"
 ```
 
+For Athena-specific prefixes, add `-SkipManifestUpload` to avoid non-CSV files in table location:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\upload-industrial-dump.ps1 -FilePath "C:\Users\pavan\Desktop\ARGODREIGN\data\industrial_dummy_1gb.csv" -BucketName "iot-alert-engine-mahindra" -S3Key "data/industrial_1gb_quoted/industrial_dummy_1gb_quoted.csv" -Region "ap-south-1" -SkipManifestUpload
+```
+
 This uploads:
 - `s3://iot-alert-engine-mahindra/data/industrial_dummy_1gb.csv`
 - `s3://iot-alert-engine-mahindra/data/industrial_dummy_1gb.csv.manifest.json`
