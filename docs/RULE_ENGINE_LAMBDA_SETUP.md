@@ -23,6 +23,18 @@ powershell -ExecutionPolicy Bypass -File .\scripts\deploy-rule-engine-lambda.ps1
 
 ## 2) Create/verify SQS -> Lambda trigger
 
+Recommended script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup-rule-engine-trigger.ps1 `
+  -FunctionName "argodreign-rule-engine" `
+  -QueueArn "arn:aws:sqs:ap-south-1:061039801536:iot-events.fifo" `
+  -Region "ap-south-1" `
+  -BatchSize 10
+```
+
+Manual alternative:
+
 ```powershell
 aws lambda create-event-source-mapping `
   --function-name argodreign-rule-engine `

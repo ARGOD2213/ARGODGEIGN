@@ -37,7 +37,17 @@ public class SensorEventService {
     private final Deque<SensorEvent> liveFallback = new ConcurrentLinkedDeque<>();
     private final Map<String, Alert> alertsFallback = new ConcurrentHashMap<>();
 
-    @CacheEvict(value = {"live-dashboard", "device-stats"}, allEntries = true)
+    @CacheEvict(value = {
+            "live-dashboard",
+            "device-stats",
+            "alert-history",
+            "machines-list",
+            "machine-alerts",
+            "machine-trends",
+            "kpi-oee",
+            "platform-status",
+            "dlq-status"
+    }, allEntries = true)
     public SensorEvent ingestEvent(SensorIngestRequest req) {
         String timestamp = Instant.now().toString();
         String status    = thresholdConfig.evaluate(req.getSensorType(), req.getValue());

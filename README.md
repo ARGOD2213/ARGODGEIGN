@@ -25,6 +25,7 @@ Cost target: `~$7 total for 6 months` at `~1 hr/day` usage.
   - `docs/schema/sensor_event_schema.json`
   - `docs/schema/source_to_canonical_mapping.json`
   - `scripts/validate-industrial-csv.ps1`
+  - `docs/SPRINT1_API_ENDPOINTS.md`
 - Partitioned analytics path (S3 + Athena):
   - `scripts/partition-industrial-csv.ps1`
   - `scripts/setup-athena-partitioned.ps1`
@@ -33,7 +34,12 @@ Cost target: `~$7 total for 6 months` at `~1 hr/day` usage.
   - `lambda/rule_engine/handler.py`
   - `lambda/rule_engine/config/rules.json`
   - `scripts/deploy-rule-engine-lambda.ps1`
+  - `scripts/setup-rule-engine-trigger.ps1`
   - `docs/RULE_ENGINE_LAMBDA_SETUP.md`
+- Guardrails:
+  - `scripts/setup-budget-guardrails.ps1`
+  - `scripts/setup-ec2-autostop-alarm.ps1`
+  - `docs/SPRINT1_GUARDRAILS.md`
 - Architecture decisions (ADRs):
   - `docs/adr/ADR-001-rule-engine-lambda.md`
   - `docs/adr/ADR-002-no-ot-write-path.md`
@@ -188,6 +194,16 @@ curl http://localhost:8080/api/v1/dashboard/overview
 Prediction:
 ```bash
 curl "http://localhost:8080/api/v1/device/MOTOR-01/prediction?forecastSteps=8"
+```
+
+Sprint 1 operations endpoints:
+```bash
+curl http://localhost:8080/api/platform/status
+curl http://localhost:8080/api/admin/dlq-status
+curl http://localhost:8080/api/machines
+curl "http://localhost:8080/api/machines/MOTOR-01/alerts?limit=10"
+curl "http://localhost:8080/api/machines/MOTOR-01/trend?hours=24"
+curl "http://localhost:8080/api/kpi/oee/MOTOR-01?hours=24"
 ```
 
 ## 8. Mobile workflows (recommended)

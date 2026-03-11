@@ -61,16 +61,23 @@ jobs:
           AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION=ap-south-1
+          EC2_INSTANCE_ID=${{ secrets.EC2_INSTANCE_ID }}
           AWS_SNS_TOPIC_ARN=arn:aws:sns:ap-south-1:061039801536:iot-alerts
           AWS_SQS_QUEUE_URL=https://sqs.ap-south-1.amazonaws.com/061039801536/iot-events.fifo
           AWS_SQS_DLQ_URL=https://sqs.ap-south-1.amazonaws.com/061039801536/iot-events-dlq.fifo
+          ATHENA_ENABLED=true
+          ATHENA_DATABASE=argodreign_analytics
+          ATHENA_TABLE=sensor_events_partitioned
+          ATHENA_OUTPUT_LOCATION=s3://iot-alert-engine-mahindra/athena-results/
+          PLATFORM_RULE_ENGINE_MODE=LAMBDA
+          PLATFORM_ENVIRONMENT=demo
           WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}
           GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
           ANTHROPIC_API_KEY=
           OPENAI_API_KEY=
           AI_ANALYSIS_ENABLED=true
           SIMULATOR_ENABLED=false
-          SPRING_CACHE_TYPE=simple
+          SPRING_CACHE_TYPE=caffeine
           EOF
 
       - name: Copy JAR and env file to EC2
@@ -133,6 +140,9 @@ jobs:
             echo "- Health: http://$PUBLIC_IP:8080/api/v1/health"
             echo "- Swagger: http://$PUBLIC_IP:8080/swagger-ui.html"
             echo "- Alerts: http://$PUBLIC_IP:8080/api/v1/alerts/history"
+            echo "- Platform Status: http://$PUBLIC_IP:8080/api/platform/status"
+            echo "- DLQ Status: http://$PUBLIC_IP:8080/api/admin/dlq-status"
+            echo "- Machines: http://$PUBLIC_IP:8080/api/machines"
             echo ""
             echo "💡 Open these URLs on your phone browser."
             echo "💡 Run STOP workflow after demo to stop billing."
