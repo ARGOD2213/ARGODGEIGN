@@ -1,0 +1,151 @@
+ARGODREIGN - ACTION 10 GAP CLOSURE EVIDENCE
+Generated: 2026-03-12 (Asia/Calcutta)
+Purpose: Close reviewer OPEN items from verdict.txt
+
+============================================================
+OPEN-03: AWS Budget threshold still $50 (reviewer said FAIL)
+Status: CLOSED
+============================================================
+Command:
+aws budgets describe-budget --account-id 061039801536 --budget-name "My Monthly Cost Budget" --region us-east-1 --query 'Budget.[BudgetName,BudgetLimit.Amount,BudgetLimit.Unit]' --output table
+
+Output:
+----------------------------
+|      DescribeBudget      |
++--------------------------+
+|  My Monthly Cost Budget  |
+|  20.0                    |
+|  USD                     |
++--------------------------+
+
+Command:
+aws budgets describe-notifications-for-budget --account-id 061039801536 --budget-name "My Monthly Cost Budget" --region us-east-1 --query 'Notifications[].{Type:NotificationType,Threshold:Threshold,ThresholdType:ThresholdType,Comparison:ComparisonOperator}' --output table
+
+Output:
+-----------------------------------------------------------
+|             DescribeNotificationsForBudget              |
++---------------+------------+------------------+---------+
+|  Comparison   | Threshold  |  ThresholdType   |  Type   |
++---------------+------------+------------------+---------+
+|  GREATER_THAN |  15.0      |  ABSOLUTE_VALUE  |  ACTUAL |
+|  GREATER_THAN |  20.0      |  ABSOLUTE_VALUE  |  ACTUAL |
++---------------+------------+------------------+---------+
+
+============================================================
+OPEN-05: DLQ alarm not confirmed (reviewer said UNKNOWN)
+Status: CLOSED
+============================================================
+Command:
+aws cloudwatch describe-alarms --alarm-names argodreign-iot-dlq-depth --region ap-south-1 --query 'MetricAlarms[0].{AlarmName:AlarmName,Threshold:Threshold,Comparison:ComparisonOperator,Actions:AlarmActions}' --output json
+
+Output:
+{
+    "AlarmName": "argodreign-iot-dlq-depth",
+    "Threshold": 0.0,
+    "Comparison": "GreaterThanThreshold",
+    "Actions": [
+        "arn:aws:sns:ap-south-1:061039801536:iot-alerts"
+    ]
+}
+
+============================================================
+OPEN-06: Dedup TTL verify pending
+Status: CLOSED
+============================================================
+Command:
+aws dynamodb describe-time-to-live --table-name argodreign-dedup --region ap-south-1 --query 'TimeToLiveDescription' --output json
+
+Output:
+{
+    "TimeToLiveStatus": "ENABLED",
+    "AttributeName": "expires_at"
+}
+
+============================================================
+OPEN-01: Athena partition not proven (reviewer said FAIL)
+Status: CLOSED
+============================================================
+Command:
+aws glue get-table --database-name argodreign_analytics --name sensor_events_partitioned --region ap-south-1 --query 'Table.PartitionKeys' --output json
+
+Output:
+[
+    {
+        "Name": "year",
+        "Type": "string",
+        "Parameters": {}
+    },
+    {
+        "Name": "month",
+        "Type": "string",
+        "Parameters": {}
+    },
+    {
+        "Name": "day",
+        "Type": "string",
+        "Parameters": {}
+    },
+    {
+        "Name": "machine_class",
+        "Type": "string",
+        "Parameters": {}
+    }
+]
+
+============================================================
+OPEN-02: schema/raw CSV dictionary incomplete (reviewer said FAIL)
+Status: CLOSED
+============================================================
+Command:
+# Header count
+$header=(Get-Content -TotalCount 1 data\industrial_dummy_1gb.csv); $cols=$header -split ','; "HEADER_COUNT=$($cols.Count)"
+
+Output:
+HEADER_COUNT=35
+
+Command:
+# Dictionary count
+$j=Get-Content -Raw docs\schema\raw_csv_dictionary.json | ConvertFrom-Json; "DICT_COUNT=$($j.columns.Count)"
+
+Output:
+DICT_COUNT=35
+
+Command:
+# Difference check
+$header=(Get-Content -TotalCount 1 data\industrial_dummy_1gb.csv) -split ',';
+$dict=((Get-Content -Raw docs\schema\raw_csv_dictionary.json | ConvertFrom-Json).columns.name);
+'MISSING_IN_DICT:'; ($header | Where-Object {$_ -notin $dict});
+'EXTRA_IN_DICT:'; ($dict | Where-Object {$_ -notin $header})
+
+Output:
+MISSING_IN_DICT:
+EXTRA_IN_DICT:
+
+============================================================
+OPEN-04 / GOV-01: AI advisory wrapper missing (reviewer said FAIL)
+Status: CLOSED
+============================================================
+Code evidence:
+- src/main/java/com/mahindra/iot/util/AiAdvisoryWrapper.java
+  banner: [AI ADVISORY | Not a control action | Rule engine has final authority]
+- src/main/java/com/mahindra/iot/controller/SensorController.java
+  response.put("aiAdvisory", AiAdvisoryWrapper.fromEvent(event));
+- src/main/java/com/mahindra/iot/service/MachineOpsService.java
+  alert.put("aiAdvisory", AiAdvisoryWrapper.fromEvent(event));
+
+Live API evidence (when app started on EC2):
+GET /api/machines/SMOKE-COMP-FILE-01/alerts
+Response contains:
+"aiAdvisory":{"banner":"[AI ADVISORY | Not a control action | Rule engine has final authority]", ...}
+
+============================================================
+Final closure summary
+============================================================
+All reviewer OPEN/UNKNOWN items are now evidenced as CLOSED:
+- OPEN-01 CLOSED
+- OPEN-02 CLOSED
+- OPEN-03 CLOSED
+- OPEN-04 CLOSED
+- OPEN-05 CLOSED
+- OPEN-06 CLOSED
+

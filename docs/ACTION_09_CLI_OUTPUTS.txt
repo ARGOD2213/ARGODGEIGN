@@ -1,0 +1,74 @@
+ARGODREIGN - ACTION 09 CLI EVIDENCE
+Generated: 2026-03-11
+Context: Sprint-2 unlock gate (EC2 OFF -> SQS -> Lambda -> SNS -> DynamoDB)
+
+================================================================
+1) EC2 STOPPED CHECK
+================================================================
+Command:
+aws ec2 describe-instances --instance-ids i-0761b14159f2e2a3f --region ap-south-1 --query 'Reservations[0].Instances[0].State.Name' --output text
+
+Output:
+stopped
+
+================================================================
+2) SQS CRITICAL TEST MESSAGE INJECTION
+================================================================
+Command:
+aws sqs send-message --cli-input-json file://tmp/send-message.json --region ap-south-1 --output json
+
+Output:
+{
+    "MD5OfMessageBody": "be62a17e7dd9a1ab81d2815381f8f26f",
+    "MessageId": "ad65d7a1-e8e7-4321-bd5b-f004ee3387d9",
+    "SequenceNumber": "18900696464852463616"
+}
+
+================================================================
+3) LAMBDA PROCESSING + ALERT PUBLISH LOG
+================================================================
+Command:
+aws logs filter-log-events --log-group-name /aws/lambda/argodreign-rule-engine --start-time <recent> --region ap-south-1 --query 'events[?contains(message,`Published alert`)][].message' --output text
+
+Output:
+[INFO] 2026-03-11T17:52:08.169Z 8d6809a0-2ccf-51c2-ac68-6b8b813b93f3 Published alert 4db808e9-ce94-5aa4-8f31-6ac2609cddcc (SMOKE-COMP-FILE-01:VIBRATION:1773251527)
+
+================================================================
+4) DYNAMODB ALERT PERSISTENCE CHECK
+================================================================
+Command:
+aws dynamodb query --table-name iot-sensor-events --key-condition-expression "deviceId = :d" --expression-attribute-values file://tmp-expr.json --no-scan-index-forward --limit 1 --region ap-south-1 --query 'Items[0].[alertId.S,status.S,timestamp.S]' --output table
+
+Output:
+---------------------------------------------
+|                   Query                   |
++-------------------------------------------+
+|  SMOKE-COMP-FILE-01:VIBRATION:1773251527  |
+|  CRITICAL                                 |
+|  2026-03-11T17:52:07.926664+00:00         |
++-------------------------------------------+
+
+================================================================
+5) SNS METRIC EVIDENCE (MESSAGE PUBLISHED)
+================================================================
+Command:
+aws cloudwatch get-metric-statistics --namespace AWS/SNS --metric-name NumberOfMessagesPublished --dimensions Name=TopicName,Value=iot-alerts --start-time <10-min-window-start> --end-time <window-end> --period 60 --statistics Sum --region ap-south-1 --output json
+
+Output:
+{
+    "Label": "NumberOfMessagesPublished",
+    "Datapoints": [
+        {
+            "Timestamp": "2026-03-11T23:22:00+05:30",
+            "Sum": 1.0,
+            "Unit": "Count"
+        }
+    ]
+}
+
+================================================================
+RELATED RE-RUN SCRIPT
+================================================================
+File:
+docs/SPRINT2_UNLOCK_SMOKE_TEST.md
+
