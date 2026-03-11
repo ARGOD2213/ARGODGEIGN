@@ -1,0 +1,1629 @@
+================================================================================
+ARGODREIGN INDUSTRIAL AI PLATFORM
+INDEPENDENT REVIEW BOARD ASSESSMENT
+Model: Claude (Anthropic) | Temperature: 0.2 | Version: 2026
+Developer: Chintala Mahindra | TCS Hyderabad
+================================================================================
+
+REVIEW BOARD PANEL:
+  [PSE]  Process Safety Engineer (Fertilizer/Chemical)
+  [RE]   Reliability Engineer (Rotating Equipment)
+  [OH]   Occupational Health & Industrial Hygiene Expert
+  [IDA]  Industrial Data/AI Architect
+  [CA]   Compliance & Audit Specialist (India + Global)
+
+STANDARDS CITED IN THIS REVIEW:
+  - IEC 61511:2016       Functional Safety / SIS
+  - IEC 61508:2010       Functional Safety of E/E/PE Systems
+  - ISO 13373-1:2002     Vibration condition monitoring
+  - ISO 10816-3:2009     Vibration severity - industrial machines
+  - EEMUA 191 Ed.3       Alarm management
+  - API 670:2014         Machinery protection systems
+  - API 617:2014         Axial/centrifugal compressors
+  - OSHA 29 CFR 1910.119 Process Safety Management
+  - Factories Act 1948   India - worker safety
+  - MSIHC Rules 1989     India - hazardous chemicals (Schedule 1)
+  - PESO Regulations     India - pressurised systems
+  - IS 5572:2009         India - hazardous area classification
+  - Environment Protection Act 1986 (India)
+  - ISO 45001:2018       Occupational health and safety
+  - NFPA 72              Emergency notification systems
+  - IEC 62443            Industrial cybersecurity
+  - ISA-18.2-2016        Management of alarm systems
+
+================================================================================
+SECTION 1: EXECUTIVE VERDICT
+================================================================================
+
+VERDICT: CONDITIONAL GO
+
+Confidence: HIGH (Conservative assessment per Claude model profile)
+Date of Review: 2026
+Platform Stage Assessed: Post v1 IoT Alert Engine, Pre Industrial AI Platform
+
+WHY — 5 BULLETS:
+
+  1. SAFETY ARCHITECTURE IS INCOMPLETE [PSE + CA]
+     The rule-based engine supremacy principle is stated but not
+     architecturally enforced. There is no documented SIL assessment
+     (IEC 61511 Clause 9) for any safety-critical function. Until
+     SIL ratings are assigned to compressor trip logic, urea HP
+     section overpressure, and NH3 leak detection, go-live at a
+     100-acre ammonia-urea complex is not defensible to PESO or OISD.
+
+  2. SENSOR COVERAGE HAS CRITICAL GAPS [RE + PSE]
+     22 sensor types are built. A minimum viable set for the 5
+     declared critical assets (compressors, reformer burners, urea HP,
+     boiler feed, instrument air) requires approximately 38-42 distinct
+     measurement types by API 670 and IEC 61511 requirements. Reformer
+     burner tube metal temperature and urea HP section corrosion
+     monitoring are absent entirely.
+
+  3. HUMAN RISK MODEL IS LEGALLY VALID BUT TECHNICALLY INCOMPLETE [OH]
+     The competency + fitness + exposure + fatigue model is sound and
+     avoids discriminatory logic. However, it has no biological exposure
+     tracking (NH3 TWA/STEL per ACGIH TLV), no heat stress index
+     computation (WBGT per ISO 7933), and no permit-to-work integration.
+     These are enforceable under Factories Act 1948, Schedule 8.
+
+  4. DATA ARCHITECTURE WILL NOT SCALE AT SENSOR VELOCITY [IDA]
+     DynamoDB single-table design for iot-sensor-events with no defined
+     partition key strategy will produce hot partitions at 50+ machines
+     x 22 sensors x 1Hz = ~1,100 writes/second sustained. DynamoDB
+     limit per partition is 1,000 WCU. This is a production outage
+     waiting to happen on go-live day.
+
+  5. COMPLIANCE TRACKING IS A DASHBOARD ONLY — NOT AN AUDIT SYSTEM [CA]
+     The compliance model tracks status. It does not generate the
+     evidentiary artifacts required for PESO inspection, factory
+     inspector audit under Factories Act, or environmental compliance
+     under EP Act 1986. A dashboard that shows GREEN does not satisfy
+     a statutory inspector requiring Form 7 (accident register),
+     Form 21 (annual return), or environmental monitoring logs.
+
+CONDITIONS FOR GO (must be met before Phase 1 production):
+  [ ] SIL assessment documented for minimum 3 safety functions
+  [ ] DynamoDB partition key strategy redesigned for sensor velocity
+  [ ] Alarm rationalization applied to SQS consumer (EEMUA 191)
+  [ ] NH3 biological exposure tracking added to human safety model
+  [ ] Statutory artifact generation added to compliance module
+
+
+================================================================================
+SECTION 2: TOP 25 GAPS
+================================================================================
+
+FORMAT: # | Gap | Severity | Evidence | Impact | Exact Fix
+--------------------------------------------------------------------------------
+
+GAP 01
+  Severity : P1 (Safety-Critical / Legally Enforceable)
+  Panel    : PSE + CA
+  Gap      : No SIL assessment exists for any safety instrumented
+             function in the platform
+  Evidence : IEC 61511:2016 Clause 9.3 mandates SIL determination
+             prior to design of SIS. PESO licensing requires SIL
+             documentation for ammonia handling above 10 MT threshold
+             (MSIHC Rules 1989, Schedule 2).
+  Impact   : Platform cannot legally operate safety-critical alert
+             functions at an ammonia plant. PESO can halt operations.
+  Exact Fix: Conduct LOPA (Layer of Protection Analysis) for:
+             (a) NH3 compressor trip on high-high suction pressure
+             (b) Urea HP section overpressure protection
+             (c) Reformer fuel gas shutoff on flame failure
+             Document SIL target for each. Minimum SIL 1 required.
+             Timeframe: Before any safety function goes live.
+
+GAP 02
+  Severity : P1 (Safety-Critical)
+  Panel    : PSE
+  Gap      : NH3 dispersion model uses wind speed only — no wind
+             direction vector, no Pasquill-Gifford atmospheric
+             stability class
+  Evidence : ASSUMPTION — OpenWeatherMap API provides wind_deg field
+             but it is not mapped in current weather model design.
+             ALOHA/SAFETI dispersion models require wind direction +
+             stability class as mandatory inputs.
+  Impact   : Evacuation zone calculated incorrectly during NH3 release.
+             Wrong muster point activation. Fatalities possible.
+  Exact Fix: Map OpenWeatherMap wind_deg to NH3 dispersion calculator.
+             Add Pasquill stability class lookup (based on wind speed
+             + cloud cover + time of day). Output: directional
+             evacuation polygon, not radius.
+
+GAP 03
+  Severity : P1 (Safety-Critical)
+  Panel    : RE + PSE
+  Gap      : Reformer burner tube metal temperature not in sensor set
+  Evidence : Steam methane reformers operating above 850 deg C develop
+             hot bands and carburisation. ISO 13373 vibration monitoring
+             alone cannot detect thermal creep failure. Tube rupture
+             is catastrophic — H2 + CO release, fire.
+  Impact   : Tube failure undetected until rupture. Estimated $2-5M
+             repair + 3-6 week production stoppage. Possible fatalities.
+  Exact Fix: Add infrared pyrometer array (minimum 4 zones per reformer
+             bank) to sensor registry. Map to reformer_tube_temp_zone_N
+             tags. Alert threshold: >900 deg C sustained >5 min = P1.
+
+GAP 04
+  Severity : P1 (Safety-Critical)
+  Panel    : PSE + RE
+  Gap      : Urea HP section corrosion monitoring absent
+  Evidence : Urea synthesis at 140-175 bar, 180-185 deg C with
+             ammonium carbamate causes severe corrosion on 316L SS
+             and duplex stainless. No corrosion coupon data, no
+             ultrasonic thickness measurement in sensor set.
+  Impact   : Undetected wall thinning leads to catastrophic HP section
+             failure. Urea HP explosion is a Category 5 PSM event.
+  Exact Fix: Add ultrasonic thickness monitoring tags for HP reactor
+             wall and HP stripper shell. Minimum 6 measurement points.
+             Integrate corrosion rate trend into machine dashboard.
+             Alert at <80% nominal wall thickness.
+
+GAP 05
+  Severity : P1 (Production Architecture)
+  Panel    : IDA
+  Gap      : DynamoDB hot partition risk at production sensor velocity
+  Evidence : 50 machines x 22 sensors x 1Hz = 1,100 writes/second.
+             DynamoDB default partition limit = 1,000 WCU. A naive
+             partition key of machine_id or sensor_type will create
+             hot partitions on high-frequency sensors.
+  Impact   : DynamoDB throttling on go-live day. Alert pipeline
+             backlog grows. Safety events delayed. SQS FIFO queue
+             backs up. Cascading failure of entire platform.
+  Exact Fix: Composite partition key: {plant_zone}#{machine_id}
+             Sort key: {sensor_type}#{timestamp_epoch_ms}
+             Add write sharding suffix (0-9) to partition key for
+             top 5 high-frequency sensors.
+             Enable DynamoDB auto-scaling with minimum 2,000 WCU.
+             Set TTL attribute (sensor_ttl) = 90 days for raw data.
+
+GAP 06
+  Severity : P1 (Operations / Safety)
+  Panel    : IDA + PSE
+  Gap      : No alarm rationalization layer — SQS consumer passes
+             all events to alert engine without deduplication or
+             rate limiting
+  Evidence : ISA-18.2-2016 Section 5 and EEMUA 191 Edition 3 require
+             alarm rationalization before operator presentation.
+             A real plant DCS generates 500-2,000 alarms per shift
+             without rationalization. Operators mute all alerts.
+             ASSUMPTION: v1 alert engine has no flood suppression.
+  Impact   : Operator alarm fatigue. Safety-critical alerts ignored.
+             Direct violation of ISA-18.2. Insurance and audit risk.
+  Exact Fix: Implement AlarmRationalizationFilter as Spring Boot
+             @Component on SQS consumer:
+             - Suppress duplicate alerts: same sensor, same severity,
+               within 10-minute window
+             - Max 1 actionable alarm per machine class per operator
+               per 10 minutes (EEMUA 191 target rate)
+             - Standing alarm suppression after 30 min unacknowledged
+               (escalate, do not repeat)
+
+GAP 07
+  Severity : P1 (Legal / Worker Safety)
+  Panel    : OH + CA
+  Gap      : No biological exposure tracking for NH3 (TWA/STEL)
+  Evidence : ACGIH TLV for NH3: TWA = 25 ppm, STEL = 35 ppm.
+             Factories Act 1948 Schedule 8 (toxic substances) requires
+             employer to maintain worker exposure records.
+             OSHA 29 CFR 1910.1000 Table Z-1 (reference only for
+             India compliance context).
+  Impact   : Workers exceed safe exposure limits without record.
+             Company liable under Factories Act. Insurance void.
+  Exact Fix: Add NH3 personal exposure log to Human Safety Dashboard:
+             - Worker ID + zone entry/exit timestamps
+             - Ambient NH3 level (from fixed detector) during exposure
+             - Computed 8hr TWA and 15min STEL per shift
+             - Auto-flag when TWA > 20 ppm (warning) or > 25 ppm (alarm)
+
+GAP 08
+  Severity : P1 (Legal / Worker Safety)
+  Panel    : OH
+  Gap      : No heat stress index (WBGT) computation in human risk model
+  Evidence : ISO 7933:2004 (Ergonomics - analytical determination of
+             heat stress). A 100-acre outdoor fertilizer complex in
+             Hyderabad/AP region experiences WBGT > 32 deg C for
+             4-5 months per year. Work-rest ratios must be enforced.
+  Impact   : Heat stroke fatalities. Factories Act Section 19 (welfare)
+             violation. Criminal liability for management.
+  Exact Fix: Compute WBGT from OpenWeatherMap:
+             WBGT_outdoor = 0.7*Tw + 0.2*Tg + 0.1*Td
+             (Tw=wet bulb, Tg=globe, Td=dry bulb — approximate
+             from humidity + temp + solar radiation)
+             Map WBGT to ISO 7933 work-rest schedule:
+             WBGT > 28: 75% work / 25% rest
+             WBGT > 30: 50/50
+             WBGT > 32: 25/75
+             WBGT > 35: Stop outdoor work
+
+GAP 09
+  Severity : P1 (Safety / Legal)
+  Panel    : CA + PSE
+  Gap      : No Permit-to-Work (PTW) integration in platform
+  Evidence : Factories Act 1948 Chapter IV (safety) + OISD-STD-105
+             (Work Permit System) mandatory for hot work, confined
+             space, height work at any petroleum/chemical facility.
+             No PTW = no legal right to perform maintenance on tagged
+             equipment.
+  Impact   : Maintenance without PTW = criminal liability. Insurance
+             void for any incident during un-permitted work.
+  Exact Fix: Add PTW status field to Machine Dashboard per asset:
+             States: NONE | ISSUED | ACTIVE | SUSPENDED | CLOSED
+             Block maintenance work order if PTW = NONE.
+             Integrate with human safety dashboard — show active
+             permits by zone.
+
+GAP 10
+  Severity : P1 (Architecture)
+  Panel    : IDA
+  Gap      : LLM context window carries no equipment history —
+             each API call is stateless
+  Evidence : Gemini API has no persistent memory between calls.
+             A single sensor alert sent to LLM without 24hr trend,
+             maintenance history, or last inspection date produces
+             analysis with ~40% reliability (ASSUMPTION based on
+             industry LLM benchmarks for single-context queries).
+  Impact   : LLM generates generic, unreliable analysis. Operators
+             lose trust. AI layer becomes unused. Project fails.
+  Exact Fix: Build SensorContextEnricher.java service:
+             Before every LLM API call, fetch and inject:
+             (a) 24hr sensor trend (DynamoDB last 86,400 records)
+             (b) Equipment master data (machine class, age, last OH)
+             (c) Last 3 maintenance work orders
+             (d) Current PTW status
+             (e) Weather context (temp, humidity, wind)
+             Inject as structured JSON prefix in LLM prompt.
+
+GAP 11
+  Severity : P1 (Architecture / Safety)
+  Panel    : IDA + PSE
+  Gap      : Multi-LLM disagreement resolution not implemented
+  Evidence : V2 Master Prompt identifies this kill risk. No code or
+             logic exists to resolve Gemini CRITICAL vs Claude WARNING
+             for same NH3 event.
+  Impact   : During active NH3 leak, platform shows conflicting
+             severity. Operator confusion. Delayed evacuation.
+  Exact Fix: Implement ConservativeConsensusResolver.java:
+             Rule 1: If ANY LLM model returns CRITICAL for a
+                     safety-classified sensor — final verdict = CRITICAL
+             Rule 2: Rule-based engine severity always wins over LLM
+             Rule 3: LLM outputs displayed as "AI Analysis" panel only
+                     — never as the primary alert severity
+             Rule 4: Log all LLM disagreements to S3 for audit trail
+
+GAP 12
+  Severity : P2 (Reliability)
+  Panel    : RE
+  Gap      : Surge detection for centrifugal compressors relies on
+             vibration only — no flow/head curve monitoring
+  Evidence : API 617:2014 Section 2.8 requires anti-surge control
+             based on flow vs head operating point relative to surge
+             line. Vibration spike is a lagging indicator of surge —
+             damage may already be occurring.
+  Impact   : Compressor surge causes impeller rub, seal damage,
+             unplanned shutdown. NH3 synthesis loop shutdown =
+             full plant production loss.
+  Exact Fix: Add flow transmitter (FT) and differential pressure (dP)
+             tags to each centrifugal compressor.
+             Compute operating point on Fanno line chart.
+             Alert at 10% margin to surge line (warning) and
+             5% margin (critical — trigger anti-surge valve signal
+             to DCS via OPC-UA, read-only advisory to operator).
+
+GAP 13
+  Severity : P2 (Reliability)
+  Panel    : RE
+  Gap      : Bearing defect detection uses raw vibration RMS only —
+             no envelope analysis (demodulation)
+  Evidence : ISO 13373-2:2005 (Condition monitoring of machines)
+             recommends high-frequency envelope analysis for early
+             bearing defect detection. BPFO/BPFI/BSF/FTF frequencies
+             require signal demodulation, not RMS.
+  Impact   : Bearing defects missed until >3mm RMS (ISO 10816 Zone D).
+             Failure occurs 2-4 weeks after detectable defect onset.
+  Exact Fix: Implement FFT envelope analysis module:
+             Sample at minimum 10kHz for bearing analysis.
+             Compute BPFO = (N/2) * RPM/60 * (1 - Bd/Pd * cos(phi))
+             Flag defect sidebands in spectrum. Alert at 3dB rise
+             in bearing defect frequency band.
+
+GAP 14
+  Severity : P2 (Reliability)
+  Panel    : RE
+  Gap      : No motor current signature analysis (MCSA) for
+             induction motor fault detection
+  Evidence : ASSUMPTION — 100-acre fertilizer complex has 200-500
+             induction motors. MCSA detects broken rotor bars, air
+             gap eccentricity, bearing faults — without additional
+             sensors, using existing CT data.
+  Impact   : Motor failures undetected. Pump/fan/compressor driven
+             equipment trips without warning.
+  Exact Fix: Add current transformer (CT) measurement to motor
+             control panels for all motors >75 kW.
+             Implement MCSA in signal processing module:
+             FFT of motor current. Look for sidebands at
+             fs ± 2*s*fs (rotor bar fault frequency).
+
+GAP 15
+  Severity : P2 (Data Architecture)
+  Panel    : IDA
+  Gap      : No data quality / sensor health monitoring
+  Evidence : ASSUMPTION — Sensors in harsh chemical environments
+             (NH3, humidity, vibration) have 15-25% drift/failure
+             rates per year without calibration tracking.
+  Impact   : Stale or drifted sensor feeding AI model. False negatives
+             on safety alerts. LLM analysis based on bad data.
+  Exact Fix: Add SensorHealthMonitor service:
+             - Flatline detection: same value > 5 min = sensor suspect
+             - Range check: value outside physical possible range
+             - Calibration due date tracking (from equipment master)
+             - Data quality tag on every DynamoDB record:
+               GOOD | SUSPECT | BAD | CALIBRATION_DUE
+             LLM context must include data quality status.
+
+GAP 16
+  Severity : P2 (Compliance)
+  Panel    : CA
+  Gap      : Environmental monitoring (stack emissions, effluent)
+             not in sensor or compliance model
+  Evidence : Environment Protection Act 1986 (India) + CPCB
+             guidelines for fertilizer industry require:
+             Stack NOx, SOx, NH3 emission monitoring (CEMS)
+             Effluent pH, TDS, NH3 discharge monitoring
+             Real-time data submission to State Pollution Control Board
+  Impact   : Environmental non-compliance. Plant closure order.
+             Criminal liability under EP Act Section 15.
+  Exact Fix: Add CEMS (Continuous Emission Monitoring System) tags
+             to sensor registry: stack_NOx_ppm, stack_SOx_ppm,
+             stack_NH3_mg_Nm3, effluent_pH, effluent_NH3_mg_L
+             Add environmental compliance module to compliance dashboard.
+             Auto-generate monthly SPCB submission report.
+
+GAP 17
+  Severity : P2 (Architecture)
+  Panel    : IDA
+  Gap      : No OT/IT network segmentation defined
+  Evidence : IEC 62443-3-3:2013 (Industrial cybersecurity) requires
+             security zones and conduits between IT and OT networks.
+             Platform reads sensor data — it is unclear whether this
+             is from: (a) direct PLC/DCS connection, (b) historian
+             via OPC-UA, or (c) MQTT simulation only.
+  Impact   : If Spring Boot application has direct network access to
+             PLC/DCS, a cybersecurity incident can cause physical
+             harm. Ransomware on IT network jumps to OT = plant trip.
+  Exact Fix: Document and enforce: Spring Boot application sits in
+             DMZ layer. Read-only OPC-UA connection to historian.
+             No write path from Spring Boot to any PLC/DCS.
+             Firewall rules: historian -> DMZ -> Spring Boot only.
+             Add IEC 62443 zone/conduit diagram to architecture docs.
+
+GAP 18
+  Severity : P2 (Reliability)
+  Panel    : RE
+  Gap      : Cavitation detection uses vibration broadband only —
+             no acoustic emission or suction pressure pulsation
+  Evidence : API 610:2010 (centrifugal pumps) and ISO 13373 indicate
+             cavitation produces high-frequency acoustic emission
+             (60-300 kHz) not captured by standard vibration sensors
+             (typically <20 kHz bandwidth).
+  Impact   : Cavitation damage to pump impeller undetected for weeks.
+             Boiler feed pump cavitation = boiler trip = plant shutdown.
+  Exact Fix: Add suction pressure pulsation monitoring (pressure
+             transmitter with 100Hz sampling) for all boiler feed
+             pumps. Alert on pulsation amplitude > 0.5 bar peak-peak.
+             Add acoustic emission sensor if budget allows.
+
+GAP 19
+  Severity : P2 (Architecture)
+  Panel    : IDA
+  Gap      : No confidence score or uncertainty quantification on
+             any AI/LLM output
+  Evidence : V2 Kill Risk #5 identifies this. ISO/IEC 22989:2022
+             (AI concepts and terminology) and IEEE 7001-2021
+             (transparency in autonomous systems) both require
+             uncertainty disclosure in AI-assisted safety systems.
+  Impact   : Operator acts on 60% confidence LLM output as if it
+             were fact. Wrong maintenance decision. Unplanned shutdown.
+  Exact Fix: Every LLM API response displayed to operator must show:
+             Confidence: [HIGH/MEDIUM/LOW]
+             Data points used: N sensor readings, M historical events
+             Analysis valid for: [time window]
+             Not a control action — advisory only
+             Calibration status: [calibrated against plant data / not calibrated]
+
+GAP 20
+  Severity : P2 (Human Safety)
+  Panel    : OH
+  Gap      : Fatigue model has no scientific basis stated
+  Evidence : ASSUMPTION — Fatigue in the human risk model is undefined.
+             Validated fatigue models: FAID (Fatigue Audit InterDyne),
+             SAFTE (Sleep, Activity, Fatigue, Task Effectiveness),
+             or simple shift-hours-based scoring per OSHA guidelines.
+  Impact   : Fatigue score either too conservative (operator removed
+             from duty unnecessarily) or too permissive (fatigued
+             operator on critical task). Both are liability risks.
+  Exact Fix: Implement FAID-lite model:
+             Score = f(hours since last sleep, shift length,
+                       consecutive shift days, time of day)
+             Thresholds: Score > 80 = restricted duties
+                         Score > 100 = mandatory rest
+             Document model basis in system design document.
+
+GAP 21
+  Severity : P2 (Compliance)
+  Panel    : CA
+  Gap      : No statutory artifact generation (Form 7, Form 21,
+             accident register, dangerous occurrence register)
+  Evidence : Factories Act 1948:
+             Section 88 - Accident reporting (Form 7)
+             Section 112 - Annual returns (Form 21)
+             Rule 103 - Dangerous occurrences register
+             None of these are generated by current compliance dashboard.
+  Impact   : Factory Inspector audit finds no statutory records.
+             License to operate suspended under Factories Act Section 7A.
+  Exact Fix: Add StatutoryArtifactGenerator module:
+             - Auto-populate Form 7 when alert severity = CRITICAL
+               and human injury/near-miss flag is set
+             - Generate Form 21 data export in December each year
+             - Maintain dangerous occurrence log in S3 with 5-year
+               retention policy
+
+GAP 22
+  Severity : P2 (Architecture)
+  Panel    : IDA
+  Gap      : S3 bucket iot-alert-engine-mahindra has no defined
+             retention policy, encryption, or access logging
+  Evidence : ASSUMPTION — Default S3 bucket settings.
+             AWS Well-Architected Framework Security Pillar requires
+             encryption at rest (SSE-S3 minimum), access logging,
+             and lifecycle policies.
+             MSIHC Rules 1989 requires incident records for 5 years.
+  Impact   : Audit evidence deleted. PESO inspector finds no incident
+             history. Security breach on alert data goes undetected.
+  Exact Fix: Enable S3 bucket policies:
+             SSE-KMS encryption on all objects
+             S3 access logging to separate audit bucket
+             Lifecycle: Standard -> IA after 90 days -> Glacier after 1 year
+             Object Lock on incident records (5-year retention WORM)
+             Block all public access — verify in AWS Config rule
+
+GAP 23
+  Severity : P3 (Architecture)
+  Panel    : IDA
+  Gap      : Lambda iot-mqtt-simulator has no throttling or
+             realistic failure injection for load testing
+  Evidence : ASSUMPTION — Simulator generates clean data only.
+             Production sensors fail, drift, go offline, and produce
+             burst data after network reconnection.
+  Impact   : Platform not tested against real-world data conditions.
+             Alert engine fails in production on first bad-data event.
+  Exact Fix: Add failure injection modes to Lambda simulator:
+             Mode 1: NORMAL — clean data at 1Hz
+             Mode 2: BURST — 100x data rate for 30 seconds
+             Mode 3: DRIFT — value slowly moves out of range
+             Mode 4: FLATLINE — constant value for N minutes
+             Mode 5: MISSING — no data for N minutes
+             Mode 6: SPIKE — single extreme value then normal
+
+GAP 24
+  Severity : P3 (Architecture)
+  Panel    : IDA
+  Gap      : No dead letter queue (DLQ) monitoring or alerting for
+             SQS iot-events.fifo
+  Evidence : ASSUMPTION — SQS FIFO has maxReceiveCount set but no
+             CloudWatch alarm on DLQ depth.
+  Impact   : Failed messages silently accumulate in DLQ. Safety
+             events from sensors never processed. No one notices
+             for hours.
+  Exact Fix: Create CloudWatch alarm: DLQ ApproximateNumberOfMessages > 0
+             Trigger: SNS iot-alerts -> Spring Boot webhook
+             Add DLQ message inspector endpoint in admin dashboard
+             Set DLQ retention to 14 days.
+
+GAP 25
+  Severity : P3 (Architecture)
+  Panel    : IDA
+  Gap      : No API rate limit management for Gemini API key
+  Evidence : Gemini API free tier: 60 requests/minute.
+             50 machines x 22 sensors firing simultaneously during
+             a plant-wide event = 1,100 alerts, each potentially
+             triggering an LLM call.
+  Impact   : Gemini API throttled during the worst possible moment —
+             a multi-machine cascade event. LLM analysis unavailable
+             when most needed.
+  Exact Fix: Implement LlmRateLimiter.java:
+             - Batch sensor events: max 1 LLM call per machine per
+               5-minute window during normal operations
+             - During CRITICAL event: 1 LLM call per machine (batched
+               all active alerts for that machine in single prompt)
+             - Fallback: if Gemini throttled, use cached last analysis
+               + rule engine only. Flag operator: "AI analysis delayed"
+
+
+================================================================================
+SECTION 3: MACHINE REALISM MATRIX
+================================================================================
+
+FORMAT: Machine Class | Min Sensors Required | Detectable Faults |
+        Not Reliably Detectable | False Positive Risks | Mitigation
+------------------------------------------------------------------------
+
+1. CENTRIFUGAL COMPRESSOR (NH3 Synthesis, Refrigeration)
+   Min Sensors : Vibration (radial x2, axial x1), bearing temp (x4),
+                 lube oil pressure, seal gas pressure, suction/discharge
+                 pressure, suction/discharge temp, flow (suction),
+                 shaft speed (API 670 mandatory set)
+   Detectable  : Imbalance (1x vibration), misalignment (2x), bearing
+                 wear (broadband RMS rise), seal failure (seal gas loss),
+                 lube oil failure (temp rise + pressure drop), surge onset
+                 (flow + pressure oscillation)
+   Undetectable: Impeller fouling (no flow curve monitoring currently),
+                 internal erosion, labyrinth seal wear (indirect only),
+                 motor winding fault (MCSA not implemented)
+   FP Risks    : Vibration spike on process upset (not mechanical fault),
+                 bearing temp rise on hot ambient day (not bearing fault)
+   Mitigation  : Process-correlated vibration filtering; ambient temp
+                 compensation on bearing temp thresholds
+
+2. REFORMER BURNERS (Primary/Secondary Reformer)
+   Min Sensors : Tube metal temp (pyrometer, 4 zones min), flue gas
+                 O2/CO analyser, fuel gas pressure, fuel gas flow,
+                 combustion air flow, stack draft, flame detector (UV/IR),
+                 skin temp uniformity index
+   Detectable  : Flame failure (UV/IR), fuel overpressure, O2 deviation
+                 (air-fuel ratio), tube hot spot (pyrometer)
+   Undetectable: Tube carburisation (lab analysis only), refractory
+                 hot spot behind tubes, catalyst bed channelling
+   FP Risks    : Pyrometer reading error from soot on lens,
+                 UV detector false trigger from adjacent flame
+   Mitigation  : Pyrometer auto-clean cycle; UV detector cross-check
+                 with IR; tube temp trend (not single point) for alarm
+
+3. UREA HP SECTION (Reactor, HP Stripper, HP Condenser, HP Scrubber)
+   Min Sensors : Operating pressure (x3 per vessel, 2oo3 voting),
+                 temperature (x2 per vessel), CO2/NH3 flow ratio,
+                 corrosion coupons (ultrasonic thickness, 6 points),
+                 carbamate pump stroke counter, relief valve position
+   Detectable  : Overpressure (pressure transmitter), temperature
+                 excursion, carbamate pump failure (stroke loss),
+                 relief valve lift (position indicator)
+   Undetectable: Stress corrosion cracking (SCC) initiation,
+                 weld defect propagation, liner disbonding
+   FP Risks    : Pressure spike from control valve hunting (not leak),
+                 temperature rise from feed composition change
+   Mitigation  : 2oo3 pressure voting to confirm alarm;
+                 corrosion rate trending over 30-day window;
+                 AE (acoustic emission) for SCC — FUTURE phase
+
+4. BOILER FEED WATER SYSTEM (BFW Pumps + Deaerator)
+   Min Sensors : BFW pump: vibration, bearing temp, suction/discharge
+                 pressure, flow, motor current; Deaerator: level, temp,
+                 pressure, dissolved O2 analyser
+   Detectable  : Pump cavitation (suction pressure + pulsation),
+                 bearing fault (vibration), motor overload (current),
+                 deaerator O2 breakthrough (analyser)
+   Undetectable: Pump internal erosion (indirect via efficiency calc),
+                 deaerator tray fouling
+   FP Risks    : Vibration spike on BFW system startup (normal transient),
+                 dissolved O2 analyser drift
+   Mitigation  : Startup suppression window (5 min post-start);
+                 O2 analyser calibration check weekly
+
+5. INSTRUMENT AIR SYSTEM (Compressors + Dryers + Distribution)
+   Min Sensors : Air compressor: vibration, bearing temp, discharge
+                 pressure, discharge temp, interstage temp;
+                 Dryer: dew point analyser, switchover timer;
+                 Distribution header: pressure at 5 key take-off points
+   Detectable  : Compressor fault (vibration), air dryer failure
+                 (dew point rise), distribution loss (header pressure)
+   Undetectable: Gradual valve seat leak in distribution (diffuse),
+                 moisture carryover into instrument tubing
+   FP Risks    : Dew point spike on high ambient humidity days,
+                 pressure dip on high instrument air demand (startup)
+   Mitigation  : Ambient humidity compensation for dew point alarm;
+                 demand-correlated pressure threshold
+
+6. AMMONIA SYNTHESIS LOOP (Converter + Heat Exchangers + Separator)
+   Min Sensors : Converter inlet/outlet temp (multi-point, 12 min),
+                 converter pressure, recycle gas H2/N2 ratio analyser,
+                 inert gas purge flow, NH3 separator level + temp,
+                 catalyst bed temp profile (4 beds x 4 points)
+   Detectable  : Catalyst hotspot (bed temp), H2/N2 ratio deviation,
+                 separator high level (carryover risk)
+   Undetectable: Catalyst poisoning (slow — only via conversion
+                 efficiency decline), converter tube cracking
+   FP Risks    : Catalyst bed temp variation from feed gas fluctuation
+                 (not catalyst damage)
+   Mitigation  : Feed-corrected catalyst efficiency KPI; temp trend
+                 rate-of-change alert (not absolute value only)
+
+7. COOLING WATER SYSTEM (Cooling Towers + Circulation Pumps)
+   Min Sensors : Supply/return temperature, flow, conductivity, pH,
+                 tower fan motor current + vibration, blowdown valve
+                 position, makeup water flow
+   Detectable  : Fouling onset (rising supply temp), pump fault
+                 (vibration), chemistry deviation (conductivity, pH)
+   Undetectable: Legionella growth (lab analysis only), internal
+                 scale distribution
+   FP Risks    : High supply temp on hot summer day (not fouling)
+   Mitigation  : Ambient wet bulb temperature correction on supply
+                 temp alarm; seasonal threshold adjustment
+
+8. ELECTRICAL SUBSTATION (HV/LV Transformers + Switchgear)
+   Min Sensors : Transformer oil temp, winding temp, buchholz relay,
+                 oil level, LV bus voltage, power factor, harmonic
+                 distortion analyser
+   Detectable  : Oil overheating, winding fault (buchholz), voltage
+                 deviation, high harmonic distortion
+   Undetectable: Insulation degradation (partial discharge — requires
+                 PD sensor not in current set), turn-to-turn fault
+   FP Risks    : Oil temp alarm on high load + high ambient (normal)
+   Mitigation  : Load-corrected transformer temp threshold;
+                 add partial discharge sensor in Phase 2
+
+
+================================================================================
+SECTION 4: CASCADE ANALYSIS
+================================================================================
+
+FORMAT: Initiating Failure | Immediate Effect | Secondary Effect |
+        Plant-Wide Effect | Est. Production Loss
+------------------------------------------------------------------------
+
+CASCADE 1: NH3 SYNTHESIS COMPRESSOR TRIP
+  Initiating  : High-high vibration on NH3 synthesis gas compressor
+                (bearing failure, rotor imbalance, or surge)
+  Immediate   : Compressor trip. Synthesis loop pressure drops.
+                NH3 synthesis stops within 2-3 minutes.
+  Secondary   : NH3 refrigeration compressor loses load (synthesis
+                gas supply cut). Refrigeration system unstable.
+                Urea plant loses NH3 feed. Urea synthesis stops.
+  Plant-Wide  : Full integrated complex shutdown. Reformer continues
+                producing syngas — must reduce or shut to match.
+                Boiler load imbalance. Possible torch flaring.
+  Prod. Loss  : 100% urea production. ~$80,000-150,000 USD per day
+                (ASSUMPTION based on 2,000 MT/day urea plant average).
+                Restart time: 12-36 hours minimum.
+  AI Response : Rule engine: CRITICAL alert via SNS within 30 seconds.
+                LLM: Context analysis of trend leading to trip.
+                Dashboard: Cascade propagation map auto-activates.
+
+CASCADE 2: REFORMER TUBE FAILURE
+  Initiating  : Tube metal temp >930 deg C sustained OR tube rupture
+  Immediate   : H2 + CO release inside reformer box. Emergency fuel
+                shutoff triggers (SIS). Reformer trips.
+  Secondary   : Synthesis gas supply to NH3 loop cut. NH3 loop
+                coasts down on inventory (15-30 min). After that,
+                NH3 synthesis stops. Urea plant stops.
+  Plant-Wide  : Full plant shutdown. Steam system surplus —
+                dump to condenser. Boilers may need to reduce firing.
+  Prod. Loss  : 100% production. Restart: 5-15 days (tube inspection,
+                refractory repair, relight procedure).
+                Estimated loss: $400,000 - $2,250,000 USD.
+  AI Response : Rule engine: CRITICAL (reformer_tube_temp > 920 deg C).
+                LLM: NOT authorised to modify SIS action.
+                Dashboard: Reformer zone highlighted. Evacuation
+                          protocol triggered for reformer area.
+
+CASCADE 3: UREA HP SECTION OVERPRESSURE EVENT
+  Initiating  : HP reactor pressure rises above 185 bar (design
+                175 bar). Relief valve lifts OR catastrophic failure.
+  Immediate   : NH3 + CO2 + urea solution release. Toxic cloud.
+                Possible explosion if ignition source present.
+  Secondary   : Plant-wide emergency shutdown (ESD). All personnel
+                evacuation. Emergency services called.
+  Plant-Wide  : 100% plant shutdown. Likely regulatory investigation.
+                Possible production license suspension.
+  Prod. Loss  : Minimum 30-day shutdown for investigation + repair.
+                Loss: $2.4M - $4.5M USD + regulatory fines.
+  AI Response : Rule engine: CRITICAL — directly trigger ESD signal
+                advisory to control room (operator confirms).
+                LLM: BLOCKED — no analysis during active ESD event.
+                     Analysis only permitted post-event in review mode.
+
+CASCADE 4: BOILER FEED WATER PUMP FAILURE
+  Initiating  : BFW pump cavitation or bearing failure. Pump trips.
+                Backup pump fails to start (single point of failure).
+  Immediate   : Boiler drum level drops. Boiler low-low level trip.
+  Secondary   : Steam supply to reformer drops. Reformer H2O:C ratio
+                falls. Carbon deposition on reformer catalyst begins.
+  Plant-Wide  : Reformer emergency shutdown to protect catalyst.
+                NH3 synthesis stops. Urea synthesis stops.
+  Prod. Loss  : 100% production. Catalyst damage possible.
+                Restart: 24-72 hours. Catalyst replacement: 2-4 weeks.
+  AI Response : Rule engine: WARNING on pump vibration/cavitation onset.
+                CRITICAL on boiler low-low level.
+                LLM: Recommend BFW pump maintenance during next
+                     planned shutdown window.
+
+CASCADE 5: INSTRUMENT AIR FAILURE
+  Initiating  : Main instrument air compressor failure + standby not
+                started. Header pressure drops below 5 bar(g).
+  Immediate   : Pneumatic control valves fail to position (fail-safe
+                open or closed per design). Process upsets cascade.
+  Secondary   : 30-50 control loops simultaneously go to manual or
+                fail-safe. Operators overwhelmed. Multiple trips likely.
+  Plant-Wide  : Full plant trip within 5-10 minutes of IA failure
+                (typical fertilizer plant operating experience).
+  Prod. Loss  : 100% production. Restart: 6-24 hours.
+  AI Response : Rule engine: P1 alert on IA header pressure < 6 bar(g).
+                CRITICAL on < 5 bar(g) with standby not running.
+                LLM: NOT called during IA failure — system may be
+                     degraded. Rule engine operates standalone.
+
+
+================================================================================
+SECTION 5: HUMAN SAFETY + LEGAL CHECK
+================================================================================
+
+VALID CONTROLS:
+
+  1. Competency-based risk scoring
+     Valid under: Factories Act 1948 Section 7A (occupier obligations),
+     ISO 45001:2018 Clause 7.2 (competence)
+     Implementation: Competency matrix per role + task. Score
+     decreases with time since last training/certification.
+
+  2. Fitness-for-duty model (non-discriminatory)
+     Valid under: Factories Act 1948 Section 45 (first aid + medical),
+     ISO 45001:2018 Clause 8.1
+     Implementation: Shift medical check status (binary: FIT/UNFIT).
+     Basis: shift medical exam — not age, gender, or ethnicity.
+
+  3. Exposure tracking by zone and duration
+     Valid under: Factories Act 1948 Schedule 8 (toxic substances),
+     MSIHC Rules 1989 Clause 4 (information disclosure)
+     Implementation: Zone entry/exit logging with ambient concentration.
+
+  4. Fatigue scoring based on shift hours
+     Valid under: Factories Act 1948 Section 54 (hours of work),
+     Section 56 (overtime limit: max 50 hrs/quarter, 60 hrs/week)
+
+INVALID / RISKY CONTROLS — DO NOT IMPLEMENT:
+
+  1. AGE-BASED risk scoring
+     Risk: Violates Equal Remuneration Act 1976, Article 14 Indian
+     Constitution (equality before law). Creates grounds for
+     discrimination lawsuit.
+     Replace with: Task-specific physical fitness criteria only.
+
+  2. Medical history-based scoring (unless disclosed voluntarily)
+     Risk: Violates privacy under Personal Data Protection framework
+     (India DPDP Act 2023). Employee cannot be scored on undisclosed
+     medical conditions.
+     Replace with: Current-shift fitness check only (binary).
+
+  3. Automated removal from duty based solely on AI risk score
+     Risk: AI decision to remove a worker = employment action.
+     Requires human supervisor approval under Indian labour law.
+     Replace with: AI flags risk score > threshold -> Supervisor
+     review required -> Supervisor confirms/overrides removal.
+
+  4. GPS tracking of individual workers without consent
+     Risk: DPDP Act 2023 requires consent for location tracking.
+     Replace with: Zone-level entry/exit logging (badge/RFID),
+     not continuous GPS tracking.
+
+LEGALLY SAFER ALTERNATIVE FRAMEWORK:
+
+  Human Safety Risk Score = f(
+    competency_gap_score [0-25 pts],
+    shift_fatigue_score  [0-25 pts — FAID-lite model],
+    current_exposure_pct [0-25 pts — % of TWA consumed],
+    task_hazard_level    [0-25 pts — based on PTW type]
+  )
+  Total = 0-100.
+
+  Thresholds:
+    0-50   : Normal duty. No action.
+    51-70  : Supervisor notification. Worker informed.
+    71-85  : Supervisor review REQUIRED before task assignment.
+    86-100 : Restricted duty. Supervisor MUST confirm.
+
+  All scoring logic documented and auditable.
+  All threshold changes require Safety Manager sign-off.
+  Workers can view their own scores at any time (DPDP compliance).
+
+
+================================================================================
+SECTION 6: COMPLIANCE ADEQUACY
+================================================================================
+
+MISSING STATUTORY CONTROLS:
+
+  1. MSIHC Rules 1989 (Manufacture, Storage and Import of Hazardous
+     Chemicals)
+     - On-site emergency plan (OSEP) digital integration
+     - Community emergency plan linkage (District Collector)
+     - Mandatory disclosure to local authority: chemical inventory,
+       hazard information, emergency contacts
+     - Status in platform: NOT PRESENT
+
+  2. PESO (Petroleum and Explosives Safety Organisation)
+     - Statutory inspection records for pressure vessels and pipelines
+     - PESO approval number tracking per vessel
+     - Inspection due date alerts
+     - Status in platform: NOT PRESENT
+
+  3. Factories Act 1948
+     - Form 7: Accident report (auto-generate on CRITICAL event +
+       human injury flag)
+     - Form 21: Annual return (auto-generate in December)
+     - Dangerous occurrences register (Section 88A)
+     - Status in platform: NOT PRESENT
+
+  4. Environment Protection Act 1986 + CPCB Guidelines
+     - Stack emission monitoring (NOx, SOx, NH3, PM)
+     - Effluent discharge monitoring
+     - Ambient air quality around plant boundary
+     - Monthly report to SPCB
+     - Status in platform: NOT PRESENT
+
+  5. IS 5572:2009 (Hazardous Area Classification)
+     - Zone 0/1/2 equipment certification tracking
+     - Ex-rated equipment inspection schedule
+     - Status in platform: NOT PRESENT
+
+  6. OISD-STD-105 (Work Permit System)
+     - Digital PTW issuance and tracking
+     - Simultaneous operations (SIMOPS) conflict detection
+     - Status in platform: NOT PRESENT
+
+MISSING EVIDENTIARY ARTIFACTS FOR AUDIT:
+
+  For PESO Inspector:
+  - Pressure vessel inspection records (last + next due date)
+  - Safety valve test records + calibration certificates
+  - NDT examination records for HP vessels
+
+  For Factory Inspector (Factories Act):
+  - Form 7 (accident reports) — last 3 years
+  - Form 21 (annual returns) — last 3 years
+  - Worker exposure records (toxic substances)
+  - Training and competency certificates
+  - First aid equipment inspection log
+
+  For State Pollution Control Board:
+  - Stack monitoring reports (monthly)
+  - Effluent analysis reports (monthly)
+  - Consent to Operate (CTO) compliance status
+
+  For Insurance Auditor:
+  - Risk assessment records (HAZOP study)
+  - Safety management system evidence (ISO 14001/45001)
+  - Emergency response drill records
+
+  ALL of above must be generated and stored by platform with
+  tamper-evident audit trail (S3 Object Lock recommended).
+
+
+================================================================================
+SECTION 7: WEATHER-TO-ACTION MATRIX
+================================================================================
+
+FORMAT: Weather Event | Threshold | Affected Unit | Mandatory Action |
+        Optional Action | Recovery Criteria
+------------------------------------------------------------------------
+
+EVENT 1: HIGH WIND
+  Threshold  : Wind speed > 15 m/s (sustained, 10-min average)
+  Affected   : Cooling towers, reformer air intake, flare system,
+               NH3 storage area
+  Mandatory  : Suspend all elevated work (height > 2m) — PTW blocked
+               Increase NH3 perimeter monitor scan frequency to 1 min
+               Alert plant manager
+  Optional   : Reduce cooling tower fan speed (structural load)
+               Pre-position emergency response team
+  Recovery   : Wind < 10 m/s sustained for 30 min
+
+EVENT 2: THUNDERSTORM / LIGHTNING
+  Threshold  : Lightning within 10 km (weather alert) OR local
+               thunder heard by operations
+  Affected   : Entire plant — all outdoor operations
+  Mandatory  : Stop all outdoor hot work immediately (PTW suspended)
+               Stop all crane and lifting operations
+               All outdoor personnel to shelter
+               Earthing check on NH3 storage spheres
+  Optional   : Reduce reformer firing rate (precautionary)
+               Alert electrical maintenance for post-storm inspection
+  Recovery   : No lightning within 30 km for 30 minutes
+
+EVENT 3: EXTREME HEAT (WBGT THRESHOLD)
+  Threshold  : WBGT_outdoor > 28 deg C
+  Affected   : All outdoor workers — field operators, maintenance
+  Mandatory  : Implement ISO 7933 work-rest schedule:
+               WBGT 28-30: 75% work / 25% rest
+               WBGT 30-32: 50% work / 50% rest
+               WBGT 32-35: 25% work / 75% rest
+               WBGT > 35: Stop all non-essential outdoor work
+               Increase water provision at field stations
+               Update human safety dashboard with WBGT index
+  Optional   : Reschedule non-critical outdoor maintenance to night
+               Deploy additional first aid personnel
+  Recovery   : WBGT < 26 deg C
+
+EVENT 4: HEAVY RAIN / FLOODING
+  Threshold  : Rainfall > 50 mm/hr (IMD warning) OR
+               Plant drainage capacity exceeded (visual)
+  Affected   : Electrical substations (ground floor), instrument
+               junction boxes, motor control centres at grade
+  Mandatory  : Isolate electrical equipment in flood-risk zones
+               Stop work in affected areas
+               Check urea prill tower drainage (prills dissolve)
+               Activate sump pumps
+  Optional   : Pre-position earthmoving for critical drainage
+  Recovery   : Standing water cleared + electrical equipment
+               inspected and certified dry before re-energising
+
+EVENT 5: FOG (LOW VISIBILITY)
+  Threshold  : Visibility < 200 m
+  Affected   : Vehicle movement on plant roads, crane operations
+  Mandatory  : Reduce vehicle speed limit to 10 km/h
+               Suspend all crane lifts
+               Increase NH3 detector response team readiness
+               (fog reduces dispersion — higher accumulation risk)
+  Optional   : Additional personnel at critical crossings
+  Recovery   : Visibility > 500 m sustained 15 min
+
+EVENT 6: HIGH AMBIENT TEMPERATURE (DRY — NO WBGT)
+  Threshold  : Dry bulb temp > 42 deg C
+  Affected   : Electrical transformers, compressor lube oil systems,
+               instrument air dryers
+  Mandatory  : Reduce transformer load if winding temp > 100 deg C
+               Increase lube oil cooler monitoring frequency
+               Check instrument air dryer dew point (heat reduces
+               dryer efficiency — wet air risk)
+  Optional   : Defer non-critical equipment to cooler shift
+  Recovery   : Ambient temp < 38 deg C
+
+EVENT 7: CYCLONE WARNING (Bay of Bengal — relevant for AP/Odisha)
+  Threshold  : IMD Cyclone Watch for district (48-72 hour warning)
+  Affected   : Entire plant
+  Mandatory  : Activate plant emergency response plan
+               Reduce plant load to minimum safe operation or
+               shutdown to safe state (plant management decision)
+               Secure all loose equipment and scaffolding
+               Test emergency generators and communication systems
+               Notify District Collector (MSIHC Rules 1989 Clause 13)
+  Optional   : Pre-position repair materials and contractors
+  Recovery   : IMD all-clear + plant structural inspection complete
+
+
+================================================================================
+SECTION 8: AI GOVERNANCE
+================================================================================
+
+ALLOWED LLM ZONES (Gemini / Claude permitted to operate):
+
+  Zone A — Post-Event Analysis (ALWAYS allowed)
+    - Root cause explanation for alerts that have CLEARED
+    - Trend narrative: "What has this sensor been doing for 24 hours"
+    - Maintenance recommendation: "Based on vibration pattern, suggest..."
+    - Shift handover summary generation
+
+  Zone B — Advisory During Normal Operations (allowed with caveat)
+    - Anomaly explanation: "This vibration pattern is consistent with..."
+    - Maintenance window recommendation (not a command)
+    - Operator training queries: "What does high BPFO frequency mean"
+    - KPI trend interpretation
+
+  Zone C — Corroborating Analysis During Warning Events (allowed)
+    - LLM may provide analysis ALONGSIDE rule engine alert
+    - LLM severity displayed separately from rule engine severity
+    - If LLM more conservative than rule engine: escalate to rule engine
+    - If LLM less conservative than rule engine: rule engine wins
+
+BLOCKED LLM ZONES (Gemini / Claude NEVER permitted):
+
+  Zone X1 — Active Emergency / ESD Events
+    - During ESD activation: LLM analysis SUSPENDED
+    - All dashboards show rule engine output ONLY
+    - LLM re-enabled only after ESD cleared by Safety Manager
+
+  Zone X2 — Control Actions
+    - LLM may NEVER issue commands to any PLC, DCS, or field device
+    - LLM may NEVER modify setpoints (direct or indirect)
+    - LLM may NEVER acknowledge alarms on behalf of operator
+    - Architecture: Spring Boot has NO write path to OT network
+
+  Zone X3 — Safety Instrumented Function Decisions
+    - Trip logic, SIS activation, relief valve actions:
+      RULE ENGINE ONLY — LLM not in decision path
+
+  Zone X4 — Worker Removal Decisions
+    - LLM may NOT autonomously remove worker from duty
+    - LLM outputs risk score. Human supervisor decides action.
+
+CONFIDENCE GATES (before LLM output is displayed):
+
+  Gate 1 — Data Quality Check
+    All sensors in LLM context must have quality tag = GOOD or SUSPECT
+    If quality = BAD: LLM call suppressed.
+    Display: "Analysis unavailable — sensor data quality insufficient"
+
+  Gate 2 — Context Completeness Check
+    LLM call requires minimum context:
+    - Equipment master data: present
+    - 24hr sensor trend: minimum 4 hours available
+    - Last maintenance record: present (or flag as unavailable)
+    If context incomplete: call proceeds but output tagged:
+    "PARTIAL CONTEXT — lower confidence"
+
+  Gate 3 — Confidence Score Display
+    Every LLM response displayed to operator must include:
+    - Confidence: HIGH / MEDIUM / LOW
+    - Basis: "N sensor readings, M historical reference events"
+    - Validity: "Analysis valid for next X minutes"
+    - Disclaimer: "Advisory only — not a control instruction"
+
+HUMAN APPROVAL GATES:
+
+  Gate H1: Alert Severity Escalation
+    If LLM recommends escalating from WARNING to CRITICAL:
+    Supervisor must confirm within 5 minutes or auto-escalate.
+
+  Gate H2: Maintenance Action Recommendation
+    Any LLM-generated maintenance recommendation requires:
+    Maintenance Supervisor acknowledgement before work order raised.
+
+  Gate H3: Worker Duty Restriction
+    Human Safety risk score > 85 triggers:
+    Immediate Supervisor review. Worker NOT removed until confirmed.
+
+  Gate H4: Compliance Override
+    Any deviation from statutory compliance threshold requires:
+    Safety Manager digital sign-off with reason code.
+    Logged immutably in S3 with timestamp.
+
+
+================================================================================
+SECTION 9: KPI PACK — 30 PRODUCTION-GRADE KPIs
+================================================================================
+
+FORMAT: # | KPI Name | Formula | Data Source | Alert Thresholds
+------------------------------------------------------------------------
+
+--- MACHINE HEALTH KPIs ---
+
+KPI 01: OVERALL EQUIPMENT EFFECTIVENESS (OEE)
+  Formula   : OEE = Availability% x Performance% x Quality%
+              Availability = (Planned time - Downtime) / Planned time
+              Performance = Actual output / Theoretical max output
+              Quality = Good units / Total units
+  Source    : DynamoDB iot-sensor-events + production data
+  Thresholds: GREEN > 85% | YELLOW 75-85% | RED < 75%
+
+KPI 02: MEAN TIME BETWEEN FAILURES (MTBF) — per machine class
+  Formula   : MTBF = Total operating hours / Number of failures
+  Source    : Failure event log in DynamoDB + shift reports
+  Thresholds: Alert when MTBF trend drops >15% vs rolling 90-day average
+
+KPI 03: MEAN TIME TO REPAIR (MTTR) — per machine class
+  Formula   : MTTR = Total downtime hours / Number of repair events
+  Source    : Work order system (PTW open to close time)
+  Thresholds: GREEN < 4h | YELLOW 4-8h | RED > 8h (critical machines)
+
+KPI 04: VIBRATION SEVERITY INDEX — per rotating machine
+  Formula   : VSI = RMS_vibration_current / RMS_vibration_baseline
+              Where baseline = 30-day rolling average, normal operation
+  Source    : Vibration sensor tags in DynamoDB
+  Thresholds: GREEN < 1.5 | YELLOW 1.5-2.5 | RED > 2.5
+              (Mapped to ISO 10816-3 Zone C/D boundary)
+
+KPI 05: BEARING TEMPERATURE DELTA — per bearing
+  Formula   : Delta_T = Bearing_temp_current - Ambient_temp_current
+  Source    : Bearing RTD + ambient sensor
+  Thresholds: GREEN Delta_T < 40 deg C | YELLOW 40-55 | RED > 55 deg C
+
+KPI 06: LUBE OIL SYSTEM HEALTH INDEX
+  Formula   : LOSHI = f(lube_oil_pressure_normal, lube_oil_temp_normal,
+              lube_oil_level_normal) — weighted binary composite
+              Score = 1.0 if all normal, decrements per deviation
+  Source    : Lube oil pressure + temp + level sensors
+  Thresholds: GREEN 1.0 | YELLOW 0.6-0.9 | RED < 0.6
+
+KPI 07: COMPRESSOR SURGE MARGIN (centrifugal compressors)
+  Formula   : Surge_Margin% = (Q_actual - Q_surge) / Q_surge x 100
+              Where Q_surge = surge flow at current head from curve
+  Source    : Flow transmitter + head calculation
+  Thresholds: GREEN > 15% | YELLOW 10-15% | RED < 10%
+
+KPI 08: MOTOR LOAD FACTOR — per motor
+  Formula   : Load_Factor = I_actual / I_nameplate x 100%
+  Source    : Motor current CT
+  Thresholds: GREEN 70-90% | YELLOW 90-100% | RED > 100% (overload)
+              Also alert: < 50% sustained (possible coupling failure)
+
+--- PROCESS SAFETY KPIs ---
+
+KPI 09: NH3 AREA CONCENTRATION — per zone
+  Formula   : NH3_zone_ppm (direct from detector)
+  Source    : Fixed NH3 electrochemical sensor tags
+  Thresholds: GREEN < 10 ppm | YELLOW 10-25 ppm | RED > 25 ppm
+              (ACGIH TLV-TWA = 25 ppm; IDLH = 300 ppm)
+              CRITICAL > 100 ppm: evacuation advisory
+
+KPI 10: PROCESS SAFETY EVENT RATE (PSER)
+  Formula   : PSER = (Number of Tier 1+2 PSE events in period) /
+              Total plant operating hours x 200,000
+  Source    : CRITICAL alert log in DynamoDB
+  Thresholds: Target = 0 Tier 1 events per year
+              YELLOW = any Tier 2 event — investigate within 24h
+
+KPI 11: SAFETY INSTRUMENTED SYSTEM (SIS) DEMAND RATE — per SIF
+  Formula   : SIS_Demand_Rate = Number of SIS demands / Operating hours
+  Source    : SIS trip log
+  Thresholds: Per IEC 61511 — demand rate exceeding SIL design basis
+              triggers formal review
+
+KPI 12: RELIEF VALVE LIFT FREQUENCY — per PSV
+  Formula   : PSV_Lift_Count per 90 days per valve
+  Source    : PSV position indicator
+  Thresholds: GREEN = 0 lifts | YELLOW = 1 lift | RED = 2+ lifts
+              Any lift = investigation required (API 520/521)
+
+KPI 13: UREA HP SECTION PRESSURE DEVIATION
+  Formula   : HP_Dev% = (P_actual - P_design) / P_design x 100
+  Source    : HP reactor pressure transmitter (2oo3 voted)
+  Thresholds: GREEN +-2% | YELLOW +-5% | RED > +8% | CRITICAL > +10%
+
+KPI 14: REFORMER TUBE TEMPERATURE UNIFORMITY INDEX
+  Formula   : TTUI = 1 - (Std_dev(tube_temps) / Mean(tube_temps))
+  Source    : Pyrometer array tags
+  Thresholds: GREEN > 0.95 | YELLOW 0.90-0.95 | RED < 0.90
+
+--- HUMAN SAFETY KPIs ---
+
+KPI 15: TOTAL RECORDABLE INCIDENT RATE (TRIR)
+  Formula   : TRIR = (Recordable incidents x 200,000) / Man-hours worked
+  Source    : Incident log + attendance system
+  Thresholds: TARGET < 0.5 | YELLOW 0.5-1.0 | RED > 1.0
+
+KPI 16: NH3 WORKER EXPOSURE — DAILY TWA PER PERSON
+  Formula   : TWA = SUM(C_i x T_i) / 8 hours
+              Where C_i = concentration in ppm, T_i = time in hours
+  Source    : Fixed detector + zone entry/exit timestamps
+  Thresholds: GREEN < 15 ppm | YELLOW 15-25 ppm | RED > 25 ppm
+              RED = Factories Act Schedule 8 threshold breach
+
+KPI 17: HEAT STRESS INDEX (WBGT)
+  Formula   : WBGT_outdoor = 0.7*Tw + 0.2*Tg + 0.1*Td
+  Source    : OpenWeatherMap (humidity, temp, solar radiation)
+  Thresholds: GREEN < 26 | YELLOW 26-30 | RED > 30 | CRITICAL > 33
+
+KPI 18: WORKFORCE FATIGUE SCORE (PLANT AVERAGE)
+  Formula   : Fatigue_Index = Mean(individual FAID-lite scores)
+              across all workers on current shift
+  Source    : Shift schedule data + hours worked
+  Thresholds: GREEN < 50 | YELLOW 50-70 | RED > 70 (> 20% workforce)
+
+KPI 19: PERMIT-TO-WORK COMPLIANCE RATE
+  Formula   : PTW_Compliance% = (Jobs with valid PTW / Total jobs) x 100
+  Source    : PTW system log
+  Thresholds: TARGET = 100% | Any value < 100% = immediate investigation
+
+KPI 20: NEAR MISS REPORTING RATE
+  Formula   : NMR = Near miss reports per 100 employees per month
+  Source    : Incident reporting system
+  Thresholds: LOW reporting (< 2/100/month) = culture problem, investigate
+              Target: 5-10/100/month (active reporting culture)
+
+--- COMPLIANCE KPIs ---
+
+KPI 21: OVERALL COMPLIANCE SCORE
+  Formula   : OCS = (Machine_compliance% x 0.35) +
+              (Human_compliance% x 0.35) +
+              (Environmental_compliance% x 0.30)
+  Source    : Compliance module aggregation
+  Thresholds: GREEN > 95% | YELLOW 85-95% | RED < 85%
+
+KPI 22: STATUTORY INSPECTION OVERDUE COUNT
+  Formula   : Count of PESO/Factory Inspector inspections where
+              next_due_date < today
+  Source    : Inspection schedule database
+  Thresholds: TARGET = 0 | Any overdue = P1 alert to management
+
+KPI 23: ENVIRONMENTAL EXCEEDANCE COUNT
+  Formula   : Count of parameters exceeding CPCB limits in period
+  Source    : CEMS + effluent analyser tags
+  Thresholds: TARGET = 0 per month | Any exceedance = report to SPCB
+
+--- AI PLATFORM KPIs ---
+
+KPI 24: ALERT PRECISION RATE (TRUE POSITIVE RATE)
+  Formula   : APR = Confirmed_true_alerts / Total_alerts_generated x 100
+  Source    : Alert log + operator feedback (acknowledged vs false alarm)
+  Thresholds: GREEN > 90% | YELLOW 75-90% | RED < 75%
+              (Below 75%: rule engine threshold calibration required)
+
+KPI 25: ALARM RATE PER OPERATOR PER HOUR
+  Formula   : Alarm_Rate = Total actionable alarms / (Operators x Hours)
+  Source    : Alert dashboard log
+  Thresholds: Per EEMUA 191: TARGET < 6/hr | MANAGEABLE 6-12/hr
+              OVERLOADED > 12/hr | FLOOD > 30/hr (unacceptable)
+
+KPI 26: LLM RESPONSE LATENCY (P95)
+  Formula   : P95 latency of Gemini API response in milliseconds
+  Source    : Spring Boot Micrometer metrics
+  Thresholds: GREEN < 3,000ms | YELLOW 3,000-8,000ms | RED > 8,000ms
+              On RED: display cached last analysis + rule engine only
+
+KPI 27: SENSOR DATA QUALITY RATE
+  Formula   : DQR = (Good_quality_readings / Total_readings) x 100
+  Source    : SensorHealthMonitor quality tag in DynamoDB
+  Thresholds: GREEN > 99% | YELLOW 97-99% | RED < 97%
+
+KPI 28: CRITICAL ALERT ACKNOWLEDGEMENT TIME
+  Formula   : Time from CRITICAL alert generation to operator ACK
+  Source    : Alert log timestamp comparison
+  Thresholds: GREEN < 2 min | YELLOW 2-5 min | RED > 5 min
+              (Based on NFPA 72 emergency response time targets)
+
+KPI 29: PREDICTIVE MAINTENANCE HIT RATE
+  Formula   : PMHR = (Predicted failures confirmed) /
+              (Total maintenance recommendations actioned) x 100
+  Source    : LLM maintenance recommendations + actual failure log
+  Thresholds: GREEN > 70% | YELLOW 50-70% | RED < 50%
+              (Below 50%: model recalibration required)
+
+KPI 30: PLATFORM AVAILABILITY (UPTIME)
+  Formula   : Availability% = (Total time - Downtime) / Total time x 100
+  Source    : AWS CloudWatch platform health metrics
+  Thresholds: GREEN > 99.5% | YELLOW 98-99.5% | RED < 98%
+              (99.5% = max 3.65 hrs downtime per month)
+
+
+================================================================================
+SECTION 10: REVISED TARGET ARCHITECTURE + ROADMAP
+================================================================================
+
+ARCHITECTURE LAYERS (Revised from v1):
+
+Layer 0 — Plant Floor (OT)
+  PLC / DCS systems — NO CHANGE from existing plant SCADA
+  Instrument air, field sensors, actuators, safety valves
+  CONSTRAINT: Spring Boot has ZERO write access to this layer
+  Interface: Read-only historian via OPC-UA (or MQTT for simulation)
+
+Layer 1 — Edge / OT Gateway (NEW — Phase 2)
+  Dedicated industrial PC (ruggedised, fan-less, IEC 62443 compliant)
+  Runs: MQTT broker, OPC-UA client, data normalization agent
+  Functions: Protocol translation, local alarm logic (offline capable),
+             data buffering (when cloud unavailable — 4hr local ring buffer)
+  Network: Isolated OT DMZ. Firewall: OT gateway -> DMZ only, no return path
+
+Layer 2 — Cloud Ingestion (EXISTING + ENHANCED)
+  Lambda iot-mqtt-simulator (enhanced with failure modes)
+  SQS iot-events.fifo (+ DLQ + CloudWatch alarm on DLQ depth)
+  AlarmRationalizationFilter (NEW Spring Boot component)
+  DynamoDB iot-sensor-events (redesigned partition key — Phase 1)
+
+Layer 3 — Core Platform (Spring Boot 3.2 + Java 17)
+  Microservices (all in single Spring Boot app for budget reasons):
+    - SensorContextEnricher: DynamoDB 24hr fetch before LLM call
+    - AlarmRationalizationFilter: EEMUA 191 enforcement
+    - RuleEngineService: Safety rule evaluation (primary authority)
+    - LlmOrchestrationService: Gemini API call manager + rate limiter
+    - ConservativeConsensusResolver: Multi-LLM disagreement resolution
+    - SensorHealthMonitor: Data quality tag computation
+    - HumanSafetyService: WBGT + TWA + FAID-lite + PTW status
+    - WeatherService: OpenWeatherMap + dispersion model
+    - ComplianceService: Statutory tracking + artifact generation
+    - KpiComputationEngine: 30 KPI calculation + threshold evaluation
+
+Layer 4 — Storage
+  DynamoDB: iot-sensor-events (time-series, 90-day TTL on raw data)
+  S3: iot-alert-engine-mahindra (alerts archive, audit artifacts,
+      LLM analysis logs — SSE-KMS, Object Lock on compliance records)
+  ElastiCache Redis (FUTURE Phase 2): LLM response cache, KPI cache
+
+Layer 5 — AI Intelligence
+  Gemini API: Primary LLM (current active key)
+  Claude API: Secondary LLM (configure when needed)
+  GPT-4: Tertiary LLM (configure when needed)
+  LLM role: Analysis and explanation ONLY
+  ConservativeConsensusResolver: Manages multi-model disagreement
+
+Layer 6 — Dashboards (API consumers — React or any frontend)
+  Machine-Wise Dashboard: Per-machine KPIs + LLM analysis panel
+  Cell-Wise Dashboard: Process unit view + cascade status
+  Plant-Wide Dashboard: OEE + safety overview + weather status
+  Human Safety Dashboard: WBGT + TWA + fatigue + PTW map
+  Compliance Dashboard: Statutory status + artifact generator
+
+Layer 7 — Notification
+  SNS iot-alerts: P1/CRITICAL alerts -> SMS/email/pager
+  DLQ CloudWatch Alarm: Platform health alert
+  Statutory Artifact Generator: Auto-email Form 7 on CRITICAL event
+
+CONTROL / DATA BOUNDARIES:
+  - Spring Boot: READ ONLY from sensor data layer
+  - Rule Engine: WRITE to alert tables, SNS publish
+  - LLM: READ context, WRITE analysis results to DynamoDB
+  - Dashboard: READ only from Spring Boot APIs
+  - NO automated write path to PLC/DCS from any platform component
+
+EDGE / CLOUD SPLIT:
+  - Edge (Phase 2): Local alarm logic, data buffering, protocol translation
+  - Cloud (Phase 1): All analytics, LLM, dashboards, compliance
+  - Rationale: Budget constraint of $140/6 months requires cloud-first.
+    Edge layer deferred to Phase 2.
+
+SECURITY BOUNDARIES (IEC 62443):
+  - Zone 1 (OT): PLC/DCS — isolated, no internet
+  - Zone 2 (DMZ): MQTT/OPC-UA gateway — read-only bridge
+  - Zone 3 (IT/Cloud): Spring Boot, DynamoDB, Lambda, S3 — AWS VPC
+  - All inter-zone traffic via AWS PrivateLink or HTTPS/TLS 1.3
+  - IAM roles: Least privilege. No root credentials in application.
+  - Secrets: AWS Secrets Manager for Gemini key, DB credentials
+
+---------------------------------------------------------------------------
+ROADMAP
+---------------------------------------------------------------------------
+
+30 DAYS (Safety Foundation — must complete before any production use):
+
+  Week 1-2:
+  [ ] Redesign DynamoDB partition key strategy (Gap 05)
+  [ ] Implement AlarmRationalizationFilter on SQS consumer (Gap 06)
+  [ ] Build SensorContextEnricher service (Gap 10)
+  [ ] Enable S3 SSE-KMS + access logging + lifecycle policy (Gap 22)
+
+  Week 3-4:
+  [ ] Implement ConservativeConsensusResolver (Gap 11)
+  [ ] Add NH3 TWA/STEL calculation to Human Safety module (Gap 07)
+  [ ] Add WBGT computation from OpenWeatherMap (Gap 08)
+  [ ] Add wind direction vector to dispersion model (Gap 02)
+  [ ] Add DLQ CloudWatch alarm for SQS (Gap 24)
+  [ ] Add Gemini API rate limiter (Gap 25)
+
+  Milestone gate: All P1 architectural gaps (01, 05, 06, 07, 08, 10,
+  11) resolved before Phase 1 production deployment.
+
+90 DAYS (Reliability + Compliance Layer):
+
+  Month 2:
+  [ ] Implement PTW status integration in Machine Dashboard (Gap 09)
+  [ ] Add sensor data quality monitor (Gap 15)
+  [ ] Implement KPI computation engine (all 30 KPIs)
+  [ ] Add surge margin monitoring for centrifugal compressors (Gap 12)
+  [ ] Implement FAID-lite fatigue model (Gap 20)
+
+  Month 3:
+  [ ] Add statutory artifact generator — Form 7, Form 21 (Gap 21)
+  [ ] Add environmental compliance module (Gap 16)
+  [ ] Add PESO inspection due date tracking (Gap 22)
+  [ ] Implement confidence score display on all LLM outputs (Gap 19)
+  [ ] Add failure injection modes to Lambda simulator (Gap 23)
+
+  Milestone gate: Compliance dashboard generates all statutory
+  artifacts. PESO and Factory Inspector audit-ready.
+
+180 DAYS (Intelligence + Scale):
+
+  Month 4-5:
+  [ ] Implement FFT envelope analysis for bearing defects (Gap 13)
+  [ ] Add MCSA for induction motors >75 kW (Gap 14)
+  [ ] Add reformer tube pyrometer sensor support (Gap 03)
+  [ ] Add urea HP ultrasonic thickness monitoring (Gap 04)
+  [ ] Calibrate LLM risk scores against actual plant history
+  [ ] Begin SIL assessment process (engage external LOPA consultant)
+
+  Month 6:
+  [ ] Design Edge layer architecture (Phase 2 planning)
+  [ ] LLM model performance benchmarking (hit rate, precision)
+  [ ] Full load test with Lambda simulator failure injection modes
+  [ ] First internal safety audit using platform compliance artifacts
+  [ ] Sponsor demonstration and acceptance review
+
+  Milestone gate: Platform generates auditable safety records.
+  LLM analysis calibrated against at least 90 days of plant data.
+  SIL assessment initiated for 3 safety functions.
+
+
+================================================================================
+SECTION 11: COST AND FEASIBILITY
+================================================================================
+
+PILOT COST ESTIMATE (Phase 1 — 30 days to 90 days):
+
+  AWS Services (ap-south-1, within $140/6 month budget):
+    EC2 t3.micro (start/stop via GitHub Actions): $0-8/month
+    DynamoDB on-demand (50 machines x 22 sensors x 1Hz):
+      Estimated: ~500K writes/day = ~$1.50/day = $45/month
+      CONSTRAINT: This alone exceeds budget at full 1Hz rate.
+      MITIGATION: Sample at 0.1Hz (10-second interval) for non-critical
+                  sensors. 1Hz only for P1 safety sensors.
+                  Estimated at 0.1Hz average: $5-8/month
+    SQS FIFO: Negligible at $0.50/million messages
+    SNS: < $1/month at expected alert volumes
+    S3: < $2/month for 90-day pilot data volume
+    Lambda: Within free tier (1M requests/month)
+    CloudWatch: ~$2/month for custom metrics and alarms
+
+  Total AWS pilot estimate: $15-25/month — within $140/6-month budget
+  CONSTRAINT: DynamoDB cost is the single largest variable.
+              Sampling strategy is mandatory for budget compliance.
+
+  External costs:
+    Gemini API (free tier): 60 RPM, 1,500 RPD — sufficient for pilot
+    OpenWeatherMap (free tier): 1,000 calls/day — sufficient
+    LOPA/SIL consultant (Phase 2): INR 3-8 lakh (one-time, ASSUMPTION)
+
+SCALE COST ESTIMATE (Phase 3 — production deployment):
+  EC2 t3.medium or ECS Fargate (Spring Boot): $30-60/month
+  DynamoDB provisioned (2,000 WCU, auto-scale): $80-150/month
+  ElastiCache Redis (cache.t3.micro): $15-25/month
+  CloudWatch enhanced monitoring: $10-20/month
+  Total AWS production estimate: $150-280/month
+
+  LLM API costs at production volume:
+  Gemini Pro API (paid tier): ~$0.002/1K tokens — at 1 call/machine/5min:
+  50 machines x 12 calls/hr x 24hr x 500 tokens = 7.2M tokens/day = $14.40/day
+  MITIGATION: Batch alerts per machine. Target 1 LLM call/machine/15min.
+  Adjusted estimate: ~$4-5/day = $120-150/month
+
+TEAM ROLES (minimum viable):
+  Lead (Chintala Mahindra)  : Java backend, AWS, Spring Boot (existing)
+  Add Phase 2               : 1 x Process Control Engineer (consultant)
+                              for SIL assessment and OPC-UA integration
+  Add Phase 3               : 1 x React/frontend developer for dashboards
+                              1 x Data Engineer for DynamoDB optimisation
+
+TOP 10 EXECUTION RISKS:
+
+  Risk 01 [CRITICAL]: DynamoDB cost overrun on 1Hz sensor rate
+    Mitigation: Implement adaptive sampling from Day 1.
+                Safety sensors: 1Hz. Non-critical: 0.1Hz.
+
+  Risk 02 [CRITICAL]: No access to real plant sensor data for calibration
+    Mitigation: Lambda simulator must be calibrated against realistic
+                plant data ranges. Engage fertilizer plant data partner.
+
+  Risk 03 [HIGH]: Gemini API rate limit hit during multi-machine event
+    Mitigation: LlmRateLimiter + batch alerts + fallback to cache.
+
+  Risk 04 [HIGH]: SIL assessment not completed before safety functions go live
+    Mitigation: Gate production deployment on SIL assessment completion.
+                Do NOT deploy NH3 leak or compressor trip alerts as
+                safety instrumented functions without SIL documentation.
+
+  Risk 05 [HIGH]: Rule engine thresholds uncalibrated for real plant
+    Mitigation: All P1 thresholds must be validated against plant
+                operating envelope data before first production alert.
+                Uncalibrated thresholds = alarm flood or missed events.
+
+  Risk 06 [HIGH]: OT/IT segmentation undefined — direct PLC access risk
+    Mitigation: Architecture decision on data source (OPC-UA historian
+                vs MQTT simulation) must be made and documented before
+                any plant-site deployment.
+
+  Risk 07 [MEDIUM]: Sponsor acceptance criteria undefined
+    Mitigation: Write one-page scope statement with sponsor before
+                Phase 1 begins. Define: what does DONE mean for each
+                dashboard and for the overall platform?
+
+  Risk 08 [MEDIUM]: LLM analysis provides low-value output due to no
+                    plant history context
+    Mitigation: SensorContextEnricher is a MUST-HAVE before LLM
+                feature is shown to any sponsor or operator.
+
+  Risk 09 [MEDIUM]: Regulatory compliance features deprioritised
+    Mitigation: Statutory artifact generation is in 90-day milestone.
+                Any deployment to a real facility requires this to be
+                present or the facility faces audit risk.
+
+  Risk 10 [LOW]: Multi-LLM cost escalation when Claude + GPT-4 added
+    Mitigation: Add Claude/GPT-4 only for cross-validation events
+                (high-severity, low-frequency). Gemini handles 95%
+                of operational volume.
+
+
+================================================================================
+WHAT CAN KILL THIS PROJECT IN PRODUCTION
+================================================================================
+
+KILL RISK 1 — SAFETY EVENT BEFORE SIL ASSESSMENT IS COMPLETE
+  Scenario  : Platform is deployed to a real ammonia plant. A CRITICAL
+              alert fires on NH3 synthesis compressor. LLM analysis is
+              ambiguous. Operator delays response. NH3 release occurs.
+              Investigation reveals: platform had no SIL assessment,
+              no documented LOPA, no IEC 61511 compliance.
+  Result    : Criminal liability under Factories Act Section 92.
+              PESO suspends facility. Platform banned from industrial use.
+              Developer and company face prosecution.
+  Prevention: IEC 61511 SIL assessment for 3 safety functions BEFORE
+              any real plant deployment. Non-negotiable.
+
+KILL RISK 2 — ALARM FLOOD ON FIRST DAY OF PRODUCTION
+  Scenario  : Platform connected to real plant data. Without alarm
+              rationalization, 1,100 sensors fire simultaneously on
+              startup. SQS backlog grows. SNS floods operator phones.
+              Operators silence all alerts within 2 hours.
+              Platform is never used again.
+  Prevention: EEMUA 191 alarm rationalization implemented and tested
+              with Lambda failure simulation BEFORE production.
+              Target rate: max 6 actionable alarms per operator per hour.
+
+KILL RISK 3 — DYNAMODB COST OVERRUN IN WEEK 1
+  Scenario  : All 50 machines x 22 sensors at 1Hz connected on go-live.
+              DynamoDB on-demand billing: $40-50/day. AWS bill at end
+              of month: $1,200-1,500. Project budget ($140/6 months)
+              exhausted in 3 days.
+  Prevention: Adaptive sampling strategy implemented from Day 1.
+              AWS Budgets alert set at $20/month. Auto-stop EC2 at limit.
+
+KILL RISK 4 — LLM GIVES WRONG ANALYSIS DURING ACTIVE NH3 EVENT
+  Scenario  : NH3 leak in synthesis area. LLM called with incomplete
+              context (calibration not done, sensor data BAD quality).
+              LLM returns: "Normal fluctuation, no action needed."
+              Rule engine returns: CRITICAL.
+              Dashboard shows both. Operator reads LLM output.
+              Evacuation delayed by 8 minutes.
+  Prevention: Rule engine severity ALWAYS shown as primary alert.
+              LLM analysis shown in secondary "AI Insight" panel only.
+              LLM analysis tagged with data quality + confidence score.
+              During CRITICAL events: LLM panel suppressed. Rule engine only.
+
+KILL RISK 5 — SPONSOR REJECTS AT DELIVERY — NO DEFINED DONE CRITERIA
+  Scenario  : After 6 months of build, sponsor is shown the platform.
+              Sponsor says: "I expected real-time control recommendations,
+              not just dashboards." Or: "I need it integrated with our
+              existing SCADA, not a standalone system."
+              No written scope agreement exists.
+              Project declared failed. Time and cost written off.
+  Prevention: One-page scope statement signed before Phase 1 code.
+              Must define: deliverables, acceptance criteria, integration
+              scope, what is NOT in scope, and demo conditions.
+
+KILL RISK 6 — CYBERSECURITY BREACH VIA SPRING BOOT TO OT PATH
+  Scenario  : Spring Boot application (internet-facing or on shared IT
+              network) is compromised. Attacker discovers direct network
+              path to plant historian or OPC-UA server. Sends malformed
+              data or commands to OT layer. Plant trips or worse.
+  Prevention: Zero write path from Spring Boot to OT. Architecture
+              documented and verified. IEC 62443 zone separation.
+              Penetration test before any plant-site deployment.
+
+KILL RISK 7 — WORKER SAFETY LEGAL ACTION FROM FLAWED RISK SCORING
+  Scenario  : Human safety risk score incorrectly scores a worker as
+              HIGH RISK based on faulty sensor data or undocumented
+              logic. Worker removed from duty. Worker files complaint
+              under Industrial Disputes Act 1947 and DPDP Act 2023.
+              Investigation finds: scoring logic undocumented, no appeal
+              process, no transparency to worker.
+  Prevention: All scoring logic documented. Worker can view own score.
+              No automated removal — supervisor always confirms.
+              DPDP Act compliance: consent, transparency, right to
+              contest.
+
+KILL RISK 8 — PLATFORM UNAVAILABLE DURING CRITICAL SAFETY EVENT
+  Scenario  : EC2 t3.micro is in STOPPED state (cost saving via
+              GitHub Actions). NH3 compressor vibration spikes at 2 AM.
+              No one started the instance. Alert never fires.
+              Compressor trips at 3 AM. Production loss begins.
+  Prevention: Safety-critical alert pipeline must run 24x7.
+              Use Lambda for rule engine evaluation (always-on, serverless).
+              EC2 start/stop acceptable only for dashboard/analytics.
+              Rule engine + SNS path must never depend on EC2 state.
+
+================================================================================
+END OF ARGODREIGN INDUSTRIAL AI PLATFORM — CLAUDE REVIEW BOARD ASSESSMENT
+================================================================================
+Reviewed by : Claude (Anthropic) | Review Board Mode | Temperature 0.2
+Developer   : Chintala Mahindra | TCS Hyderabad
+Platform    : ARGODREIGN Industrial AI Platform
+Version     : V2 Master Prompt Review
+Date        : 2026
+Sections    : 12 of 12 complete
+Verdict     : CONDITIONAL GO
+
+For cross-model comparison: run identical prompt on GPT-4 and Gemini.
+Compare Kill Risks, Gap Table P1 items, and KPI overlap per V2 Guide.
+
+Standards cited: IEC 61511, IEC 61508, IEC 62443, ISO 13373, ISO 10816,
+ISO 7933, ISO 45001, API 670, API 617, API 610, EEMUA 191, ISA-18.2,
+NFPA 72, Factories Act 1948, MSIHC Rules 1989, PESO Regulations,
+IS 5572, EP Act 1986, OSHA 1910.119, ACGIH TLV, DPDP Act 2023
+================================================================================
