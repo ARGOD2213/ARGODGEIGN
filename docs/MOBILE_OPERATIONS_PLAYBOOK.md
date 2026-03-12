@@ -1,116 +1,48 @@
-# ARGODREIGN Mobile Operations Playbook
+# ARGODREIGN Mobile Operations Playbook (EC2 Mode)
 
-This setup lets you control your AWS server from your phone.
+This is the correct phone-first playbook for current architecture.
 
-## What is possible from phone
-- Start ECS service
-- Stop ECS service
-- Restart ECS deployment
-- Deploy latest code to ECS (build + push + rollout)
-- Pull CloudWatch logs snapshot
-- Make commits directly on GitHub from phone
+## What you can do from phone
 
-## What is not direct from phone
-- Starting/stopping your **local laptop Docker** is not direct unless the laptop is online and you expose remote access (SSH/Tailscale/remote desktop).
+- Start server using GitHub Action `START IoT Server`
+- Stop server using GitHub Action `STOP IoT Server`
+- Open dashboards in browser
+- Post reviewer feedback using GitHub issue template
+- Trigger async review sync to `docs/REVIEW_INBOX.md`
 
-If your main requirement is server control, keep production on ECS and use the workflows below.
+## Current architecture reminder
 
-## One-time setup (5-10 minutes)
-1. Open your GitHub repo:
-   - `https://github.com/ARGOD2213/ARGODGEIGN`
-2. Recommended (secure): configure OIDC role from your laptop once:
-   - `.\scripts\setup-github-oidc.ps1 -AwsRegion ap-south-1 -AwsAccountId <account-id> -GitHubOwner ARGOD2213 -GitHubRepo ARGODGEIGN -GitHubBranch master`
-3. Go to:
-   - `Settings -> Secrets and variables -> Actions -> New repository secret`
-4. Add fallback secrets only if you are not using OIDC:
-   - `AWS_ACCESS_KEY_ID`
-   - `AWS_SECRET_ACCESS_KEY`
-5. `aws_role_to_assume` is already pre-filled in workflows for this repo.
+- Compute runtime: EC2 `t3.micro`
+- Rule engine: Lambda `argodreign-rule-engine` (always serverless)
+- Dashboards/API: Spring Boot on EC2 (start/stop to save cost)
+- Data: S3 + Athena + DynamoDB alerts
 
-## Mobile workflows added in this repo
-- `.github/workflows/mobile-ecs-control.yml`
-- `.github/workflows/mobile-deploy-ecs.yml`
-- `.github/workflows/mobile-cloudwatch-logs.yml`
-- `.github/workflows/mobile-cost-snapshot.yml`
+## Start/Stop from phone
 
-## How to start/stop server from phone
-1. Open GitHub mobile app.
-2. Open repo `ARGODGEIGN`.
-3. Tap `Actions`.
-4. Choose `Mobile ECS Control`.
-5. Tap `Run workflow`.
-6. Fill:
-   - `action`: `start` or `stop` or `restart` or `status`
-   - `aws_region`: `ap-south-1`
-   - `aws_role_to_assume`: your OIDC role ARN (recommended)
-   - `ecs_cluster`: your cluster (default `iot-cluster`)
-   - `ecs_service`: your service (default `iot-api`)
-   - `desired_count`: usually `1` for start
-7. Run it and check summary in the run output.
-8. The summary now shows `Health URL (if running)` so you can open it directly.
+1. Open GitHub app -> repository -> Actions.
+2. Run `START IoT Server`.
+3. Wait for success and open URLs from step summary.
+4. After demo, run `STOP IoT Server`.
 
-## How to deploy from phone
-1. In GitHub app -> `Actions`.
-2. Choose `Mobile Deploy To ECS`.
-3. Tap `Run workflow`.
-4. Fill:
-   - `aws_region`
-   - `aws_role_to_assume`
-   - `ecs_cluster`
-   - `ecs_service`
-   - `ecr_repo`
-   - `image_tag` (example `release-2026-03-10`)
-5. Run and watch step summary.
+## Reviewer flow from phone (no desktop)
 
-## How to check AWS logs from phone
-Option A: GitHub workflow snapshot
-1. Actions -> `Mobile CloudWatch Logs Snapshot`.
-2. Run with:
-   - `aws_role_to_assume`
-   - `log_group` (example `/ecs/iot-api`)
-   - `lookback_minutes` (example `120`)
-   - `limit` (example `200`)
-3. Open summary and artifact (`logs.txt`).
+1. Open:
+   - `https://github.com/ARGOD2213/ARGODGEIGN/issues/new?template=reviewer-drop.yml`
+2. Paste reviewer output and submit issue.
+3. Wait for workflow `Review Inbox Sync` to complete.
+4. Open:
+   - `docs/REVIEW_INBOX.md`
+5. Tell Codex:
+   - `Process docs/REVIEW_INBOX.md and implement all P1 then P2 fixes. Commit and push.`
 
-Option B: Direct AWS app/console
-- Use AWS Console mobile browser for CloudWatch logs.
-- Faster for live investigation if you already have IAM access on phone.
+## Cost protection
 
-## How to check current AWS cost from phone
-1. Actions -> `Mobile Cost Snapshot`.
-2. Run with:
-   - `aws_role_to_assume`
-   - `monthly_budget_usd` (use `23.33` for your 6-month target)
-3. Open summary for:
-   - total month spend so far
-   - budget used percent
-   - top cost-driving AWS services
+- Keep EC2 stopped when not actively demoing.
+- Use Lambda for safety rule evaluation even when EC2 is stopped.
+- Do not enable always-on ALB/NAT for this budget mode.
 
-## How to commit from phone
-Option A (quick edits)
-1. Open file in GitHub app.
-2. Tap edit icon.
-3. Make change.
-4. Commit directly to branch.
-5. Open PR.
+## Useful docs
 
-Option B (real coding from phone)
-1. Open GitHub in mobile browser (desktop mode if needed).
-2. Launch Codespaces for repo.
-3. Edit/test/commit/push from Codespace.
-
-## Safety checklist before mobile ops
-- Use least-privilege IAM user/role for GitHub Actions.
-- Enable MFA on GitHub and AWS account.
-- Keep ECS stop workflow available to cut cost quickly.
-- Rotate AWS keys periodically.
-- Do not store secrets in code or `.env` committed files.
-
-## Emergency stop from phone
-Run `Mobile ECS Control` with:
-- `action=stop`
-- `desired_count=0`
-
-Then verify in run summary:
-- Desired count = `0`
-- Running count moving to `0`
+- `docs/MOBILE_CHAT_SPACE.md`
+- `docs/ASYNC_OFFICE_MODE.md`
+- `docs/GITHUB_SECRETS_SETUP.md`

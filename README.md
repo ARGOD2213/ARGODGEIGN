@@ -16,6 +16,9 @@
 
 - Open this from phone for live handoff updates:
   - `docs/MOBILE_CHAT_SPACE.md`
+- Async no-desktop mode:
+  - `docs/ASYNC_OFFICE_MODE.md`
+  - `docs/REVIEW_INBOX.md`
 
 ## ðŸ“± Start/Stop from Phone
 

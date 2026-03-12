@@ -1,0 +1,40 @@
+name: Reviewer Drop
+description: Paste reviewer output from phone. This auto-syncs into docs/REVIEW_INBOX.md.
+title: "[REVIEW] "
+labels:
+  - review-inbox
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Paste your reviewer feedback below.
+        This issue is auto-synced to `docs/REVIEW_INBOX.md` by GitHub Actions.
+
+  - type: input
+    id: source
+    attributes:
+      label: Review Source
+      description: Where did this review come from?
+      placeholder: GPT / Claude / Gemini / Human reviewer
+    validations:
+      required: true
+
+  - type: textarea
+    id: reviewer_output
+    attributes:
+      label: Reviewer Output
+      description: Paste full review text.
+      placeholder: Paste complete reviewer notes here.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: owner_action
+    attributes:
+      label: Owner Action Request
+      description: What do you want Codex to do next?
+      placeholder: Example - Apply all P1 fixes first and commit.
+      render: text
+    validations:
+      required: true
