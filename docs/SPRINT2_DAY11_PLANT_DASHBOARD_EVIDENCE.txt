@@ -1,0 +1,148 @@
+ARGODREIGN Sprint 2 Day 10-11 - Plant Dashboard Evidence
+Timestamp: 2026-03-12 08:15:29 +05:30
+
+GET /plant.html -> HTTP 
+200
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARGODREIGN ??? Plant Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+    }
+    .topbar {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .topbar h1 { font-size: 16px; font-weight: 700; color: #58a6ff; letter-spacing: 1px; }
+    .topbar nav a {
+      color: #8b949e;
+      text-decoration: none;
+      font-size: 13px;
+      margin-left: 20px;
+    }
+    .topbar nav a:hover { color: #e6edf3; }
+    .topbar nav a.active { color: #58a6ff; font-weight: 600; }
+
+    .safety-banner {
+      background: #1a0a00;
+      border-bottom: 2px solid #d29922;
+      padding: 8px 24px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e3b341;
+      
+
+Plant data endpoints:
+GET /api/machines
+[
+    {
+        "machineId":  "ENV-AQI-ROOF-001",
+        "status":  "CRITICAL",
+        "lastTimestamp":  "2026-03-10T14:58:16.591829299Z",
+        "lastSensorType":  "AIR_QUALITY",
+        "lastValue":  223.92,
+        "location":  "unknown",
+        "machineClass":  "environmental",
+        "hasActiveAlert":  true
+    },
+    {
+        "machineId":  "ENV-BARO-MAIN-001",
+        "status":  "NORMAL",
+        "lastTimestamp":  "2026-03-09T19:16:49.759193709Z",
+        "lastSensorType":  "BAROMETRIC_PRESSURE",
+        "lastValue":  1010.93,
+        "location":  "Main-Hall",
+        "machineClass":  "environmental",
+        "hasActiveAlert":  false
+    },
+    {
+        "machineId":  "ENV-CO2-ZONE-A-001",
+        "status":  "WARNING",
+        "lastTimestamp":  "2026-03-10T14:58:16.334720164Z",
+        "lastSensorType":  "CO2",
+        "lastValue":  1909.08,
+        "location":  "unknown",
+        "machineClass":  "environmental",
+        "hasActiveAlert":  true
+    },
+    {
+        "machineId":  "ENV-HUMID-ZONE-A-001",
+        "status":  "WARNING",
+        "lastTimestamp":  "2026-03-10T14:58:05.331897733Z",
+        "lastSensorType":  "HUMIDITY",
+        "lastValue":  75.1,
+        "location":  "unknown",
+        "machineClass":  "environmental",
+        "hasActiveAlert":  true
+    },
+    {
+        "machineId":  "ENV-TEMP-ZONE-A-001",
+     
+
+GET /api/kpi/oee/MCH-VIBR-COMPRESSOR-003
+{
+    "machineId":  "MCH-VIBR-COMPRESSOR-003",
+    "hours":  24,
+    "availability":  0.9722,
+    "performance":  1.0,
+    "quality":  0.3889,
+    "oeePercent":  37.81,
+    "totalEvents":  36,
+    "source":  "DYNAMODB_FALLBACK"
+}
+
+GET /api/v1/weather/current
+{
+    "temperature":  28.0,
+    "humidity":  50.0,
+    "condition":  "Clear",
+    "windSpeed":  3.0,
+    "source":  "SYNTHETIC_FALLBACK"
+}
+
+GET /api/v1/safety/nh3-zones
+[
+    {
+        "zone":  "SYNTHESIS",
+        "twa8h":  7.1,
+        "ppm":  8.2
+    },
+    {
+        "zone":  "COMPRESSOR",
+        "twa8h":  14.2,
+        "ppm":  18.5
+    },
+    {
+        "zone":  "STORAGE",
+        "twa8h":  3.8,
+        "ppm":  4.1
+    },
+    {
+        "zone":  "UREA_HP",
+        "twa8h":  19.1,
+        "ppm":  22.3
+    },
+    {
+        "zone":  "UTILITY",
+        "twa8h":  1.9,
+        "ppm":  2.0
+    }
+]
+
+Checklist:
+- OEE summary source present
+- Zone alert table source present
+- Cascade condition source present (machineClass/status from /api/machines)
+- Weather + NH3 summary source present

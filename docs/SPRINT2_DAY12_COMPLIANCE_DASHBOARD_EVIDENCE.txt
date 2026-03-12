@@ -1,0 +1,113 @@
+ARGODREIGN Sprint 2 Day 12 - Compliance Dashboard Evidence
+Timestamp: 2026-03-12 08:15:29 +05:30
+
+GET /compliance.html -> HTTP 
+200
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARGODREIGN ??? Compliance Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+    }
+    .topbar {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .topbar h1 { font-size: 16px; font-weight: 700; color: #58a6ff; letter-spacing: 1px; }
+    .topbar nav a {
+      color: #8b949e;
+      text-decoration: none;
+      font-size: 13px;
+      margin-left: 20px;
+    }
+    .topbar nav a:hover { color: #e6edf3; }
+    .topbar nav a.active { color: #58a6ff; font-weight: 600; }
+
+    .banner {
+      background: #1a0a00;
+      border-bottom: 2px solid #d29922;
+      padding: 8px 24px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e3b341;
+      te
+
+Compliance endpoints:
+GET /api/v1/compliance/summary
+{
+    "machineCompliance":  92.0,
+    "environmentCompliance":  94.0,
+    "humanCompliance":  89.0,
+    "overallComplianceScore":  91.6,
+    "formula":  "Machine*0.35 + Human*0.35 + Env*0.30"
+}
+
+GET /api/v1/compliance/inspections
+[
+    {
+        "machine":  "MCH-VIBR-COMPRESSOR-003",
+        "nextDue":  "2026-03-16",
+        "status":  "DUE_SOON",
+        "lastInspected":  "2026-03-01"
+    },
+    {
+        "machine":  "MCH-TEMP-BOILER-011",
+        "nextDue":  "2026-03-22",
+        "status":  "ON_TRACK",
+        "lastInspected":  "2026-02-20"
+    },
+    {
+        "machine":  "SAF-GAS-BOILER-ROOM",
+        "nextDue":  "2026-03-25",
+        "status":  "ON_TRACK",
+        "lastInspected":  "2026-03-05"
+    },
+    {
+        "machine":  "MCH-VIBR-PUMP-002",
+        "nextDue":  "2026-03-12",
+        "status":  "OVERDUE",
+        "lastInspected":  "2026-02-10"
+    }
+]
+
+GET /api/v1/compliance/environment
+{
+    "cpcbLimitPpm":  100.0,
+    "timestamp":  "2026-03-12",
+    "status":  "COMPLIANT",
+    "nh3StackPpm":  62.5
+}
+
+POST /api/compliance/form7
+{
+    "generatedAt":  "2026-03-12",
+    "status":  "DRAFT",
+    "form":  "Form 7 - Accident/Incident Preliminary Record",
+    "note":  "Sprint 5 will generate PDF output"
+}
+
+GET /api/compliance/monthly-report
+kpi,value
+overall_compliance_score,91.5
+machine_compliance,92.0
+human_compliance,89.0
+environment_compliance,94.0
+
+
+Checklist:
+- Overall compliance score rendered from API
+- Inspection due dates API returning rows
+- Environment status API returning limit comparison
+- Form7 and monthly export placeholders operational

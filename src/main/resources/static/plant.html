@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARGODREIGN — Plant Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+    }
+    .topbar {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .topbar h1 { font-size: 16px; font-weight: 700; color: #58a6ff; letter-spacing: 1px; }
+    .topbar nav a {
+      color: #8b949e;
+      text-decoration: none;
+      font-size: 13px;
+      margin-left: 20px;
+    }
+    .topbar nav a:hover { color: #e6edf3; }
+    .topbar nav a.active { color: #58a6ff; font-weight: 600; }
+
+    .safety-banner {
+      background: #1a0a00;
+      border-bottom: 2px solid #d29922;
+      padding: 8px 24px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e3b341;
+      text-align: center;
+    }
+
+    .container {
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 960px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .card h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #8b949e;
+      margin-bottom: 12px;
+    }
+
+    .oee-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 1200px) {
+      .oee-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+    }
+    .oee-box {
+      background: #21262d;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+    .oee-name { font-size: 11px; color: #8b949e; margin-bottom: 6px; }
+    .oee-val { font-size: 28px; font-weight: 700; line-height: 1; }
+    .oee-src { margin-top: 4px; font-size: 10px; color: #8b949e; }
+
+    .kpi-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .kpi {
+      background: #21262d;
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-width: 120px;
+    }
+    .kpi .label { font-size: 11px; color: #8b949e; }
+    .kpi .value { font-size: 24px; font-weight: 700; line-height: 1.2; }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .table th {
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 8px 10px;
+      border-bottom: 1px solid #30363d;
+    }
+    .table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #21262d;
+    }
+    .table tr:hover td { background: #21262d; }
+
+    .sev {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .sev-critical { background: #4d0000; color: #f85149; }
+    .sev-warning { background: #2d2a00; color: #e3b341; }
+    .sev-safe { background: #0d4429; color: #3fb950; }
+
+    .cascade {
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .cascade-risk { border: 1px solid #f85149; background: #4d0000; color: #f85149; }
+    .cascade-safe { border: 1px solid #238636; background: #0d4429; color: #3fb950; }
+    .chain {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .full { grid-column: 1 / -1; }
+    .loading { color: #8b949e; font-size: 13px; }
+    .updated { margin-top: 8px; text-align: right; color: #8b949e; font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🏭 ARGODREIGN — Plant-Wide Operations Dashboard</h1>
+  <nav>
+    <a href="/index.html">Overview</a>
+    <a href="/machine.html">Machines</a>
+    <a href="/safety.html">Safety</a>
+    <a href="/plant.html" class="active">Plant</a>
+    <a href="/compliance.html">Compliance</a>
+  </nav>
+</div>
+
+<div class="safety-banner">
+  ⚠ Plant-wide analytics are advisory only. Lambda rule engine remains final authority for safety critical alerts.
+</div>
+
+<div class="container">
+  <div class="card full">
+    <h3>📊 Plant OEE Summary</h3>
+    <div id="oee-kpis" class="kpi-row">
+      <div class="loading">Loading plant OEE...</div>
+    </div>
+    <div id="oee-grid" class="oee-grid"></div>
+    <div id="oee-updated" class="updated"></div>
+  </div>
+
+  <div class="card">
+    <h3>🚨 Active Alert Summary By Zone</h3>
+    <div id="zone-alerts">
+      <div class="loading">Loading zone alert summary...</div>
+    </div>
+    <div id="zone-updated" class="updated"></div>
+  </div>
+
+  <div class="card">
+    <h3>⛓ Cascade Risk Indicator</h3>
+    <div id="cascade">
+      <div class="loading">Evaluating cascade dependency...</div>
+    </div>
+  </div>
+
+  <div class="card full">
+    <h3>🌦 Weather + Safety Summary Banner</h3>
+    <div id="weather-summary">
+      <div class="loading">Loading weather and NH3 summary...</div>
+    </div>
+    <div id="weather-updated" class="updated"></div>
+  </div>
+</div>
+
+<script>
+const API = "";
+
+const machineClassPriority = ["compressor", "reactor", "boiler", "pump", "turbine"];
+
+function inferZone(machine) {
+  const loc = (machine.location || "").toUpperCase();
+  if (loc && loc !== "UNKNOWN") {
+    return loc.split(/[\/\- ]/)[0] || "GENERAL";
+  }
+  const cls = (machine.machineClass || "").toUpperCase();
+  if (cls.includes("COMP")) return "COMPRESSOR";
+  if (cls.includes("REACT")) return "SYNTHESIS";
+  if (cls.includes("BOILER")) return "UTILITY";
+  if (cls.includes("STORAGE")) return "STORAGE";
+  return "GENERAL";
+}
+
+function oeeColor(v) {
+  if (v >= 85) return "#3fb950";
+  if (v >= 75) return "#e3b341";
+  return "#f85149";
+}
+
+async function loadPlantOee() {
+  const kpi = document.getElementById("oee-kpis");
+  const grid = document.getElementById("oee-grid");
+  try {
+    const machines = await fetch(`${API}/api/machines`).then(r => r.json());
+    const sorted = [...machines].sort((a, b) => {
+      const ai = machineClassPriority.indexOf((a.machineClass || "").toLowerCase());
+      const bi = machineClassPriority.indexOf((b.machineClass || "").toLowerCase());
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
+    const selected = sorted.slice(0, 5);
+
+    const rows = [];
+    for (const m of selected) {
+      const id = m.machineId || m.deviceId || m.id;
+      const data = await fetch(`${API}/api/kpi/oee/${id}`).then(r => r.json()).catch(() => ({}));
+      const percent = data.oeePercent != null ? Number(data.oeePercent) : Number((data.oee || 0) * 100);
+      rows.push({
+        machineId: id,
+        oeePercent: isNaN(percent) ? 0 : percent,
+        source: data.source || "UNKNOWN"
+      });
+    }
+
+    const plantOee = rows.length ? (rows.reduce((s, x) => s + x.oeePercent, 0) / rows.length) : 0;
+    const warnCount = machines.filter(m => (m.status || "").toUpperCase() === "WARNING").length;
+    const critCount = machines.filter(m => (m.status || "").toUpperCase() === "CRITICAL").length;
+
+    kpi.innerHTML = `
+      <div class="kpi"><div class="label">Plant OEE</div><div class="value" style="color:${oeeColor(plantOee)}">${plantOee.toFixed(1)}%</div></div>
+      <div class="kpi"><div class="label">Critical Machines</div><div class="value" style="color:${critCount>0?'#f85149':'#3fb950'}">${critCount}</div></div>
+      <div class="kpi"><div class="label">Warning Machines</div><div class="value" style="color:${warnCount>0?'#e3b341':'#3fb950'}">${warnCount}</div></div>
+      <div class="kpi"><div class="label">Machines Tracked</div><div class="value">${machines.length}</div></div>
+    `;
+
+    grid.innerHTML = rows.map(r => `
+      <div class="oee-box">
+        <div class="oee-name">${r.machineId}</div>
+        <div class="oee-val" style="color:${oeeColor(r.oeePercent)}">${r.oeePercent.toFixed(1)}%</div>
+        <div class="oee-src">${r.source}</div>
+      </div>
+    `).join("");
+
+    document.getElementById("oee-updated").textContent = `Updated: ${new Date().toLocaleTimeString("en-IN")}`;
+    return machines;
+  } catch (e) {
+    kpi.innerHTML = `<div class="loading">Plant OEE unavailable: ${e.message}</div>`;
+    grid.innerHTML = "";
+    return [];
+  }
+}
+
+function renderZoneAlerts(machines) {
+  const byZone = {};
+  for (const m of machines) {
+    const zone = inferZone(m);
+    const status = (m.status || "NORMAL").toUpperCase();
+    if (!byZone[zone]) byZone[zone] = { critical: 0, warning: 0, total: 0 };
+    byZone[zone].total += 1;
+    if (status === "CRITICAL") byZone[zone].critical += 1;
+    if (status === "WARNING") byZone[zone].warning += 1;
+  }
+
+  const zoneRows = Object.entries(byZone)
+    .sort((a, b) => (b[1].critical - a[1].critical) || (b[1].warning - a[1].warning))
+    .map(([zone, v]) => `
+      <tr>
+        <td>${zone}</td>
+        <td>${v.critical}</td>
+        <td>${v.warning}</td>
+        <td>${v.total}</td>
+      </tr>
+    `).join("");
+
+  document.getElementById("zone-alerts").innerHTML = `
+    <table class="table">
+      <thead>
+        <tr><th>Zone</th><th>Critical</th><th>Warning</th><th>Machines</th></tr>
+      </thead>
+      <tbody>${zoneRows || '<tr><td colspan="4">No zone data</td></tr>'}</tbody>
+    </table>
+  `;
+  document.getElementById("zone-updated").textContent = `Updated: ${new Date().toLocaleTimeString("en-IN")}`;
+}
+
+function renderCascade(machines) {
+  const compressorsCritical = machines.filter(m =>
+    ((m.machineClass || "").toLowerCase().includes("compressor")
+      || (m.machineId || "").toUpperCase().includes("COMP")) &&
+    (m.status || "").toUpperCase() === "CRITICAL"
+  );
+
+  if (compressorsCritical.length > 0) {
+    document.getElementById("cascade").innerHTML = `
+      <div class="cascade cascade-risk">
+        <div><strong>Cascade Risk: ACTIVE</strong></div>
+        <div>At least one compressor is CRITICAL. Downstream units are at elevated risk.</div>
+        <div class="chain">
+          <span class="sev sev-critical">COMPRESSOR CRITICAL</span>
+          <span>→</span>
+          <span class="sev sev-warning">NH3 SYNTHESIS LOOP AT RISK</span>
+          <span>→</span>
+          <span class="sev sev-warning">UREA PLANT FEED AT RISK</span>
+        </div>
+      </div>
+    `;
+  } else {
+    document.getElementById("cascade").innerHTML = `
+      <div class="cascade cascade-safe">
+        <div><strong>Cascade Risk: LOW</strong></div>
+        <div>No compressor in CRITICAL state. No active cascade path detected.</div>
+      </div>
+    `;
+  }
+}
+
+async function loadWeatherSummary() {
+  const el = document.getElementById("weather-summary");
+  try {
+    const weather = await fetch(`${API}/api/v1/weather/current`).then(r => r.json());
+    const nh3 = await fetch(`${API}/api/v1/safety/nh3-zones`).then(r => r.json());
+    const maxNh3 = (Array.isArray(nh3) && nh3.length)
+      ? nh3.reduce((a, b) => (Number(a.ppm) > Number(b.ppm) ? a : b))
+      : { zone: "N/A", ppm: 0 };
+
+    el.innerHTML = `
+      <div class="kpi-row">
+        <div class="kpi"><div class="label">Temperature</div><div class="value">${Number(weather.temperature || 0).toFixed(1)}°C</div></div>
+        <div class="kpi"><div class="label">Humidity</div><div class="value">${Number(weather.humidity || 0).toFixed(0)}%</div></div>
+        <div class="kpi"><div class="label">Condition</div><div class="value" style="font-size:18px">${weather.condition || "Clear"}</div></div>
+        <div class="kpi"><div class="label">Wind Speed</div><div class="value">${Number(weather.windSpeed || 0).toFixed(1)} m/s</div></div>
+        <div class="kpi"><div class="label">Max NH3 Zone</div><div class="value" style="color:${Number(maxNh3.ppm)>=25?'#f85149':'#e3b341'}">${maxNh3.zone} (${maxNh3.ppm} ppm)</div></div>
+      </div>
+      <div style="font-size:11px;color:#8b949e">Weather source: ${weather.source || "UNKNOWN"} | NH3 source: /api/v1/safety/nh3-zones</div>
+    `;
+    document.getElementById("weather-updated").textContent = `Updated: ${new Date().toLocaleTimeString("en-IN")}`;
+  } catch (e) {
+    el.innerHTML = `<div class="loading">Weather summary unavailable: ${e.message}</div>`;
+  }
+}
+
+async function refresh() {
+  const machines = await loadPlantOee();
+  renderZoneAlerts(machines);
+  renderCascade(machines);
+  await loadWeatherSummary();
+}
+
+refresh();
+setInterval(refresh, 60000);
+</script>
+</body>
+</html>

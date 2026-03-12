@@ -1,0 +1,233 @@
+ARGODREIGN Sprint 2 Day 8-9 - Sensor Context + Rate Limiter Evidence
+Timestamp: 2026-03-12 08:10:18 +05:30
+
+Build command: mvn -q -DskipTests package -> PASS
+
+Test setup:
+- Gemini key intentionally set to dummy value to drive LLM path without external dependency
+- Three WARNING events posted for same machine within same minute
+
+Response #1
+{
+    "message":  "Event ingested successfully",
+    "deviceId":  "S2-RL-COMP-001",
+    "timestamp":  "2026-03-12T02:40:06.506767200Z",
+    "sensorType":  "VIBRATION",
+    "value":  6.3,
+    "status":  "WARNING",
+    "alertFired":  true,
+    "aiRiskScore":  55,
+    "weatherNote":  "Weather: 28.0??C, 50% humidity, Clear. No direct weather correlation detected.",
+    "llmConsensus":  "RULE_BASED",
+    "aiAdvisory":  {
+                       "banner":  "[AI ADVISORY | Not a control action | Rule engine has final authority]",
+                       "label":  "AI ADVISORY",
+                       "notice":  "Not a control action",
+                       "authority":  "Rule engine has final authority",
+                       "confidence":  "LOW",
+                       "riskScore":  55,
+                       "analysis":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.30. Threshold exceeded, immediate attention required.",
+                       "summary":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.30. Threshold exceeded, immediate attention required.",
+                       "recommendedAction":  "Inspect motor or pump for mechanical imbalance or bearing wear.",
+                       "dataSource":  "RULE_BASED",
+                       "validFor":  "30 minutes",
+                       "calibrated":  false,
+                       "consensus":  "RULE_BASED"
+                   }
+}
+
+Response #2
+{
+    "message":  "Event ingested successfully",
+    "deviceId":  "S2-RL-COMP-001",
+    "timestamp":  "2026-03-12T02:40:14.175683500Z",
+    "sensorType":  "VIBRATION",
+    "value":  6.5,
+    "status":  "WARNING",
+    "alertFired":  true,
+    "aiRiskScore":  55,
+    "weatherNote":  "Weather: 28.0??C, 50% humidity, Clear. No direct weather correlation detected.",
+    "llmConsensus":  "RULE_BASED_RATE_LIMITED",
+    "aiAdvisory":  {
+                       "banner":  "[AI ADVISORY | Not a control action | Rule engine has final authority]",
+                       "label":  "AI ADVISORY",
+                       "notice":  "Not a control action",
+                       "authority":  "Rule engine has final authority",
+                       "confidence":  "LOW",
+                       "riskScore":  55,
+                       "analysis":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.50. Threshold exceeded, immediate attention required.",
+                       "summary":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.50. Threshold exceeded, immediate attention required.",
+                       "recommendedAction":  "Inspect motor or pump for mechanical imbalance or bearing wear.",
+                       "dataSource":  "RULE_BASED_RATE_LIMITED",
+                       "validFor":  "30 minutes",
+                       "calibrated":  false,
+                       "consensus":  "RULE_BASED_RATE_LIMITED"
+                   }
+}
+
+Response #3
+{
+    "message":  "Event ingested successfully",
+    "deviceId":  "S2-RL-COMP-001",
+    "timestamp":  "2026-03-12T02:40:16.381260800Z",
+    "sensorType":  "VIBRATION",
+    "value":  6.7,
+    "status":  "WARNING",
+    "alertFired":  true,
+    "aiRiskScore":  55,
+    "weatherNote":  "Weather: 28.0??C, 50% humidity, Clear. No direct weather correlation detected.",
+    "llmConsensus":  "RULE_BASED_RATE_LIMITED",
+    "aiAdvisory":  {
+                       "banner":  "[AI ADVISORY | Not a control action | Rule engine has final authority]",
+                       "label":  "AI ADVISORY",
+                       "notice":  "Not a control action",
+                       "authority":  "Rule engine has final authority",
+                       "confidence":  "LOW",
+                       "riskScore":  55,
+                       "analysis":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.70. Threshold exceeded, immediate attention required.",
+                       "summary":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.70. Threshold exceeded, immediate attention required.",
+                       "recommendedAction":  "Inspect motor or pump for mechanical imbalance or bearing wear.",
+                       "dataSource":  "RULE_BASED_RATE_LIMITED",
+                       "validFor":  "30 minutes",
+                       "calibrated":  false,
+                       "consensus":  "RULE_BASED_RATE_LIMITED"
+                   }
+}
+
+Machine alerts endpoint sample
+[
+    {
+        "machineId":  "S2-RL-COMP-001",
+        "alertId":  "40570c6c-f837-4ca5-ba41-091ac8a9633c",
+        "timestamp":  "2026-03-12T02:40:16.381260800Z",
+        "sensorType":  "VIBRATION",
+        "value":  6.7,
+        "status":  "WARNING",
+        "aiRiskScore":  55,
+        "aiSummary":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.70. Threshold exceeded, immediate attention required.",
+        "weatherNote":  "Weather: 28.0??C, 50% humidity, Clear. No direct weather correlation detected.",
+        "aiAdvisory":  {
+                           "banner":  "[AI ADVISORY | Not a control action | Rule engine has final authority]",
+                           "label":  "AI ADVISORY",
+                           "notice":  "Not a control action",
+                           "authority":  "Rule engine has final authority",
+                           "confidence":  "LOW",
+                           "riskScore":  55,
+                           "analysis":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.70. Threshold exceeded, immediate attention required.",
+                           "summary":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.70. Threshold exceeded, immediate attention required.",
+                           "recommendedAction":  "Inspect motor or pump for mechanical imbalance or bearing wear.",
+                           "dataSource":  "RULE_BASED_RATE_LIMITED",
+                           "validFor":  "30 minutes",
+                           "calibrated":  false,
+                           "consensus":  "RULE_BASED_RATE_LIMITED"
+                       }
+    },
+    {
+        "machineId":  "S2-RL-COMP-001",
+        "alertId":  "3b97ba99-673d-4a97-9d62-bfb6f3d0f161",
+        "timestamp":  "2026-03-12T02:40:14.175683500Z",
+        "sensorType":  "VIBRATION",
+        "value":  6.5,
+        "status":  "WARNING",
+        "aiRiskScore":  55,
+        "aiSummary":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.50. Threshold exceeded, immediate attention required.",
+        "weatherNote":  "Weather: 28.0??C, 50% humidity, Clear. No direct weather correlation detected.",
+        "aiAdvisory":  {
+                           "banner":  "[AI ADVISORY | Not a control action | Rule engine has final authority]",
+                           "label":  "AI ADVISORY",
+                           "notice":  "Not a control action",
+                           "authority":  "Rule engine has final authority",
+                           "confidence":  "LOW",
+                           "riskScore":  55,
+                           "analysis":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.50. Threshold exceeded, immediate attention required.",
+                           "summary":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.50. Threshold exceeded, immediate attention required.",
+                           "recommendedAction":  "Inspect motor or pump for mechanical imbalance or bearing wear.",
+                           "dataSource":  "RULE_BASED_RATE_LIMITED",
+                           "validFor":  "30 minutes",
+                           "calibrated":  false,
+                           "consensus":  "RULE_BASED_RATE_LIMITED"
+                       }
+    },
+    {
+        "machineId":  "S2-RL-COMP-001",
+        "alertId":  "02796277-da96-46e5-a567-4a603423a15a",
+        "timestamp":  "2026-03-12T02:40:06.506767200Z",
+        "sensorType":  "VIBRATION",
+        "value":  6.3,
+        "status":  "WARNING",
+        "aiRiskScore":  55,
+        "aiSummary":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.30. Threshold exceeded, immediate attention required.",
+        "weatherNote":  "Weather: 28.0??C, 50% humidity, Clear. No direct weather correlation detected.",
+        "aiAdvisory":  {
+                           "banner":  "[AI ADVISORY | Not a control action | Rule engine has final authority]",
+                           "label":  "AI ADVISORY",
+                           "notice":  "Not a control action",
+                           "authority":  "Rule engine has final authority",
+                           "confidence":  "LOW",
+                           "riskScore":  55,
+                           "analysis":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.30. Threshold exceeded, immediate attention required.",
+                           "summary":  "VIBRATION sensor on device S2-RL-COMP-001 is WARNING with value 6.30. Threshold exceeded, immediate attention required.",
+                           "recommendedAction":  "Inspect motor or pump for mechanical imbalance or bearing wear.",
+                           "dataSource":  "RULE_BASED",
+                           "validFor":  "30 minutes",
+                           "calibrated":  false,
+                           "consensus":  "RULE_BASED"
+                       }
+    }
+]
+
+Consensus sequence:
+1: RULE_BASED
+2: RULE_BASED_RATE_LIMITED
+3: RULE_BASED_RATE_LIMITED
+
+Confidence sequence:
+1: LOW
+2: LOW
+3: LOW
+
+App log tail (context/rate limiter evidence):
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+08:09:23 [main] INFO  c.m.iot.IotAlertEngineApplication - Starting IotAlertEngineApplication v2.0.0 using Java 17.0.18 with PID 3108 (C:\Users\pavan\Desktop\ARGODREIGN\target\iot-alert-engine-2.0.0.jar started by pavan in C:\Users\pavan\Desktop\ARGODREIGN)
+08:09:23 [main] INFO  c.m.iot.IotAlertEngineApplication - No active profile set, falling back to 1 default profile: "default"
+08:09:27 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Multiple Spring Data modules found, entering strict repository configuration mode
+08:09:27 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+08:09:27 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 27 ms. Found 0 Redis repository interfaces.
+08:09:30 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8080 (http)
+08:09:30 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+08:09:30 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.16]
+08:09:30 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+08:09:30 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 6994 ms
+Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+08:09:38 [main] INFO  o.s.b.a.w.s.WelcomePageHandlerMapping - Adding welcome page: class path resource [static/index.html]
+08:09:41 [main] INFO  o.s.b.a.e.web.EndpointLinksResolver - Exposing 2 endpoint(s) beneath base path '/actuator'
+08:09:41 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8080 (http) with context path ''
+08:09:41 [main] INFO  c.m.iot.IotAlertEngineApplication - Started IotAlertEngineApplication in 19.672 seconds (process running for 21.293)
+08:09:41 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+08:09:41 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+08:09:41 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
+08:10:09 [http-nio-8080-exec-3] WARN  c.m.i.service.AthenaAnalyticsService - Athena query failed, fallback will be used: Athena query b1e17467-68b9-4e4c-bbd0-fa9cc03959fc failed: HIVE_BAD_DATA: Malformed Parquet file. Expected magic number: PAR1 got: 01
+ [s3://iot-alert-engine-mahindra/data/partitioned/sensor_events/year=2026/month=02/day=09/machine_class=compressor/data.csv]
+08:10:10 [http-nio-8080-exec-3] WARN  c.m.i.s.MultiLlmAnalysisService - LLM analysis failed for S2-RL-COMP-001: 400 Bad Request: "{<EOL>  "error": {<EOL>    "code": 400,<EOL>    "message": "API key not valid. Please pass a valid API key.",<EOL>    "status": "INVALID_ARGUMENT",<EOL>    "details": [<EOL>      {<EOL>        "@type": "type.googleapis.com/google.rpc.ErrorInfo",<EOL>        "reason": "API_KEY_INVALID",<EOL>        "domain": "googleapis.com",<EOL>        "metadata": {<EOL>          "service": "generativelanguage.googleapis.com"<EOL>        }<EOL>      },<EOL>      {<EOL>        "@type": "type.googleapis.com/google.rpc.LocalizedMessage",<EOL>        "locale": "en-US",<EOL>        "message": "API key not valid. Please pass a valid API key."<EOL>      }<EOL>    ]<EOL>  }<EOL>}<EOL>" - falling back to rule-based
+08:10:14 [http-nio-8080-exec-3] WARN  c.m.iot.service.SnsAlertService - SNS topic ARN not configured ? skipping notification
+08:10:14 [http-nio-8080-exec-3] WARN  c.m.iot.service.SensorEventService - ALERT: alertId=02796277-da96-46e5-a567-4a603423a15a, device=S2-RL-COMP-001, severity=WARNING, riskScore=55
+08:10:14 [http-nio-8080-exec-3] INFO  c.m.iot.service.SensorEventService - Ingested: device=S2-RL-COMP-001, type=VIBRATION, value=6.3, status=WARNING
+08:10:15 [http-nio-8080-exec-4] WARN  c.m.i.service.AthenaAnalyticsService - Athena query failed, fallback will be used: Athena query 002c53fb-44ac-4162-8ca5-9ed8e47dc659 failed: HIVE_BAD_DATA: Malformed Parquet file. Expected magic number: PAR1 got: 01
+ [s3://iot-alert-engine-mahindra/data/partitioned/sensor_events/year=2026/month=02/day=09/machine_class=compressor/data.csv]
+08:10:16 [http-nio-8080-exec-4] WARN  c.m.iot.service.SnsAlertService - SNS topic ARN not configured ? skipping notification
+08:10:16 [http-nio-8080-exec-4] WARN  c.m.iot.service.SensorEventService - ALERT: alertId=3b97ba99-673d-4a97-9d62-bfb6f3d0f161, device=S2-RL-COMP-001, severity=WARNING, riskScore=55
+08:10:16 [http-nio-8080-exec-4] INFO  c.m.iot.service.SensorEventService - Ingested: device=S2-RL-COMP-001, type=VIBRATION, value=6.5, status=WARNING
+08:10:18 [http-nio-8080-exec-5] WARN  c.m.i.service.AthenaAnalyticsService - Athena query failed, fallback will be used: Athena query 571b03c7-51bc-4905-9dde-3746586da868 failed: HIVE_BAD_DATA: Malformed Parquet file. Expected magic number: PAR1 got: 01
+ [s3://iot-alert-engine-mahindra/data/partitioned/sensor_events/year=2026/month=02/day=09/machine_class=compressor/data.csv]
+08:10:18 [http-nio-8080-exec-5] WARN  c.m.iot.service.SnsAlertService - SNS topic ARN not configured ? skipping notification
+08:10:18 [http-nio-8080-exec-5] WARN  c.m.iot.service.SensorEventService - ALERT: alertId=40570c6c-f837-4ca5-ba41-091ac8a9633c, device=S2-RL-COMP-001, severity=WARNING, riskScore=55
+08:10:18 [http-nio-8080-exec-5] INFO  c.m.iot.service.SensorEventService - Ingested: device=S2-RL-COMP-001, type=VIBRATION, value=6.7, status=WARNING

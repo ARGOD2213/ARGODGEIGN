@@ -3,7 +3,8 @@ package com.mahindra.iot.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mahindra.iot.model.SensorEvent;
-import com.mahindra.iot.repository.SensorEventRepository;
+import com.mahindra.iot.service.LlmAnalysisCacheService.CachedAnalysis;
+import com.mahindra.iot.service.SensorContextEnricher.SensorContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,9 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,11 +25,12 @@ public class MultiLlmAnalysisService {
 
     private static final int MEDIUM_DATA_POINTS = 12;
     private static final int HIGH_DATA_POINTS = 144;
-    private static final int MAINT_HISTORY_POINTS = 24;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-    private final SensorEventRepository sensorEventRepository;
+    private final SensorContextEnricher sensorContextEnricher;
+    private final LlmRateLimiter llmRateLimiter;
+    private final LlmAnalysisCacheService llmAnalysisCacheService;
 
     @Value("${ai.gemini.api.key:}")
     private String geminiKey;
@@ -41,7 +42,7 @@ public class MultiLlmAnalysisService {
     private boolean analysisEnabled;
 
     public void analyze(SensorEvent event) {
-        AnalysisContext context = buildAnalysisContext(event);
+        SensorContext context = sensorContextEnricher.enrich(event.getDeviceId(), event.getSensorType());
         String confidence = computeConfidence(
                 context.dataPointsAvailable(),
                 context.hasMaintHistory(),
@@ -53,66 +54,65 @@ public class MultiLlmAnalysisService {
             return;
         }
 
-        try {
-            if (geminiKey != null && !geminiKey.isBlank()) {
-                callGemini(event);
-                event.setLlmConsensus("GEMINI_ANALYSIS");
-                log.info("Gemini analysis complete for {} - riskScore={}, confidence={}",
-                        event.getDeviceId(), event.getAiRiskScore(), event.getAiConfidence());
-            } else {
-                log.debug("Gemini key not configured - using rule-based analysis");
-                applyRuleBasedAnalysis(event, confidence);
+        if (geminiKey == null || geminiKey.isBlank()) {
+            log.debug("Gemini key not configured - using rule-based analysis");
+            applyRuleBasedAnalysis(event, confidence);
+            return;
+        }
+
+        if (!llmRateLimiter.shouldCallLlm(event.getDeviceId())) {
+            if (applyCachedAnalysis(event)) {
+                event.setLlmConsensus("CACHED_ANALYSIS");
+                log.debug("Rate limit hit for {}. Served cached analysis.", event.getDeviceId());
+                return;
             }
+            applyRuleBasedAnalysis(event, confidence);
+            event.setLlmConsensus("RULE_BASED_RATE_LIMITED");
+            log.debug("Rate limit hit for {}. No cache, served rule-based analysis.", event.getDeviceId());
+            return;
+        }
+
+        try {
+            callGemini(event, context);
+            if (event.getLlmConsensus() == null || event.getLlmConsensus().isBlank()) {
+                event.setLlmConsensus("GEMINI_ANALYSIS");
+            }
+            cacheCurrentAnalysis(event);
+            log.info("Gemini analysis complete for {} - riskScore={}, confidence={}, dataPoints={}",
+                    event.getDeviceId(), event.getAiRiskScore(), event.getAiConfidence(), context.dataPointsAvailable());
         } catch (Exception e) {
             log.warn("LLM analysis failed for {}: {} - falling back to rule-based", event.getDeviceId(), e.getMessage());
             applyRuleBasedAnalysis(event, confidence);
         }
     }
 
-    private AnalysisContext buildAnalysisContext(SensorEvent event) {
-        int dataPointsAvailable = countRecentDataPoints(event.getDeviceId());
-        boolean hasMaintHistory = dataPointsAvailable >= MAINT_HISTORY_POINTS;
-        boolean hasWeatherContext = hasWeatherContext(event);
-        return new AnalysisContext(dataPointsAvailable, hasMaintHistory, hasWeatherContext);
-    }
-
-    private int countRecentDataPoints(String deviceId) {
-        if (deviceId == null || deviceId.isBlank()) {
-            return 0;
-        }
-
-        Instant cutoff = Instant.now().minus(24, ChronoUnit.HOURS);
-        long count = sensorEventRepository.findByDeviceId(deviceId).stream()
-                .map(SensorEvent::getTimestamp)
-                .map(this::parseInstantSafe)
-                .filter(ts -> ts.isAfter(cutoff))
-                .count();
-
-        if (count > Integer.MAX_VALUE) {
-            return Integer.MAX_VALUE;
-        }
-        return (int) count;
-    }
-
-    private Instant parseInstantSafe(String timestamp) {
-        if (timestamp == null || timestamp.isBlank()) {
-            return Instant.EPOCH;
-        }
-        try {
-            return Instant.parse(timestamp);
-        } catch (Exception ex) {
-            return Instant.EPOCH;
-        }
-    }
-
-    private boolean hasWeatherContext(SensorEvent event) {
-        String note = event.getWeatherCorrelationNote();
-        if (note == null || note.isBlank()) {
+    private boolean applyCachedAnalysis(SensorEvent event) {
+        Optional<CachedAnalysis> cachedOpt = llmAnalysisCacheService.readFresh(event.getDeviceId());
+        if (cachedOpt.isEmpty()) {
             return false;
         }
 
-        String normalized = note.trim().toLowerCase();
-        return !"n/a".equals(normalized);
+        CachedAnalysis cached = cachedOpt.get();
+        event.setAiIncidentSummary(cached.analysis());
+        event.setAiRecommendedAction(cached.recommendedAction());
+        event.setAiPredictedFailureEta(cached.predictedFailureEta());
+        event.setAiRiskScore(cached.riskScore() != null ? cached.riskScore() : 50);
+        event.setAiRiskLevel(cached.riskLevel() != null ? cached.riskLevel() : "MEDIUM");
+        event.setAiConfidence(cached.confidence() != null ? cached.confidence() : event.getAiConfidence());
+        event.setGeminiRiskScore(event.getAiRiskScore() != null ? event.getAiRiskScore().doubleValue() : null);
+        return true;
+    }
+
+    private void cacheCurrentAnalysis(SensorEvent event) {
+        CachedAnalysis cacheRecord = llmAnalysisCacheService.fromEvent(
+                event.getLlmConsensus(),
+                event.getAiRiskScore(),
+                event.getAiRiskLevel(),
+                event.getAiIncidentSummary(),
+                event.getAiRecommendedAction(),
+                event.getAiPredictedFailureEta(),
+                event.getAiConfidence());
+        llmAnalysisCacheService.write(event.getDeviceId(), cacheRecord);
     }
 
     private String computeConfidence(int dataPointsAvailable,
@@ -143,8 +143,8 @@ public class MultiLlmAnalysisService {
         return "LOW";
     }
 
-    private void callGemini(SensorEvent event) {
-        String prompt = buildPrompt(event);
+    private void callGemini(SensorEvent event, SensorContext context) {
+        String prompt = buildPrompt(event, context);
         String url = geminiUrl + "?key=" + geminiKey;
 
         Map<String, Object> body = Map.of(
@@ -182,12 +182,14 @@ public class MultiLlmAnalysisService {
                 event.setAiRecommendedAction(json.path("recommendedAction").asText("Monitor closely"));
                 event.setAiPredictedFailureEta(json.path("predictedFailureEta").asText("Unknown"));
                 event.setGeminiRiskScore((double) event.getAiRiskScore());
+                event.setLlmConsensus("GEMINI_ANALYSIS");
             } else {
                 event.setAiIncidentSummary(text.length() > 300 ? text.substring(0, 300) : text);
                 event.setAiRiskScore("CRITICAL".equals(event.getStatus()) ? 85 : 60);
                 event.setAiRiskLevel("CRITICAL".equals(event.getStatus()) ? "HIGH" : "MEDIUM");
                 event.setAiRecommendedAction("Review sensor readings and inspect equipment");
                 event.setGeminiRiskScore((double) event.getAiRiskScore());
+                event.setLlmConsensus("GEMINI_ANALYSIS");
             }
         } catch (Exception e) {
             log.warn("Gemini response parse failed: {}", e.getMessage());
@@ -195,7 +197,14 @@ public class MultiLlmAnalysisService {
         }
     }
 
-    private String buildPrompt(SensorEvent event) {
+    private String buildPrompt(SensorEvent event, SensorContext context) {
+        String contextJson;
+        try {
+            contextJson = objectMapper.writeValueAsString(sensorContextEnricher.toPromptMap(context));
+        } catch (Exception ex) {
+            contextJson = "{}";
+        }
+
         return String.format("""
             You are an industrial IoT expert. Analyze this sensor alert and respond ONLY in JSON format.
 
@@ -203,6 +212,9 @@ public class MultiLlmAnalysisService {
             Location: %s | Category: %s
             Weather: %.1fC, %s
             Weather Note: %s
+
+            Context JSON:
+            %s
 
             Respond with ONLY this JSON (no markdown):
             {
@@ -220,7 +232,8 @@ public class MultiLlmAnalysisService {
                 event.getSensorCategory() != null ? event.getSensorCategory() : "Unknown",
                 event.getWeatherTempC() != null ? event.getWeatherTempC() : 28.0,
                 event.getWeatherCondition() != null ? event.getWeatherCondition() : "Clear",
-                event.getWeatherCorrelationNote() != null ? event.getWeatherCorrelationNote() : "None"
+                event.getWeatherCorrelationNote() != null ? event.getWeatherCorrelationNote() : "None",
+                contextJson
         );
     }
 
@@ -232,7 +245,9 @@ public class MultiLlmAnalysisService {
         event.setAiRiskLevel(level);
         event.setAiConfidence(confidence != null ? confidence : "LOW");
         event.setGeminiRiskScore((double) score);
-        event.setLlmConsensus("RULE_BASED");
+        if (event.getLlmConsensus() == null || event.getLlmConsensus().isBlank()) {
+            event.setLlmConsensus("RULE_BASED");
+        }
 
         String type = event.getSensorType();
         event.setAiIncidentSummary(String.format(
@@ -253,10 +268,5 @@ public class MultiLlmAnalysisService {
         });
 
         event.setAiPredictedFailureEta("CRITICAL".equals(event.getStatus()) ? "Within 2-4 hours" : "Within 24 hours if unaddressed");
-    }
-
-    private record AnalysisContext(int dataPointsAvailable,
-                                   boolean hasMaintHistory,
-                                   boolean hasWeatherContext) {
     }
 }

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARGODREIGN — Compliance Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+    }
+    .topbar {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .topbar h1 { font-size: 16px; font-weight: 700; color: #58a6ff; letter-spacing: 1px; }
+    .topbar nav a {
+      color: #8b949e;
+      text-decoration: none;
+      font-size: 13px;
+      margin-left: 20px;
+    }
+    .topbar nav a:hover { color: #e6edf3; }
+    .topbar nav a.active { color: #58a6ff; font-weight: 600; }
+
+    .banner {
+      background: #1a0a00;
+      border-bottom: 2px solid #d29922;
+      padding: 8px 24px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e3b341;
+      text-align: center;
+    }
+
+    .container {
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 960px) {
+      .container { grid-template-columns: 1fr; }
+    }
+    .full { grid-column: 1 / -1; }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .card h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #8b949e;
+      margin-bottom: 12px;
+    }
+    .score {
+      font-size: 54px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .score-meta { margin-top: 8px; color: #8b949e; font-size: 12px; }
+    .formula { margin-top: 8px; font-size: 11px; color: #8b949e; }
+    .chip {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+    .chip-green { background: #0d4429; color: #3fb950; border: 1px solid #238636; }
+    .chip-yellow { background: #2d2a00; color: #e3b341; border: 1px solid #9e6a03; }
+    .chip-red { background: #4d0000; color: #f85149; border: 1px solid #da3633; }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .table th {
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 8px 10px;
+      border-bottom: 1px solid #30363d;
+    }
+    .table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #21262d;
+    }
+    .table tr:hover td { background: #21262d; }
+
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .btn {
+      border: 1px solid #30363d;
+      background: #21262d;
+      color: #e6edf3;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn:hover { border-color: #58a6ff; color: #58a6ff; }
+
+    pre {
+      margin-top: 10px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 11px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #8b949e;
+      max-height: 180px;
+      overflow: auto;
+    }
+    .updated { margin-top: 8px; text-align: right; color: #8b949e; font-size: 11px; }
+    .loading { color: #8b949e; font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <h1>📘 ARGODREIGN — Compliance Dashboard</h1>
+  <nav>
+    <a href="/index.html">Overview</a>
+    <a href="/machine.html">Machines</a>
+    <a href="/safety.html">Safety</a>
+    <a href="/plant.html">Plant</a>
+    <a href="/compliance.html" class="active">Compliance</a>
+  </nav>
+</div>
+
+<div class="banner">
+  ⚠ Compliance dashboard is advisory for demo mode. Statutory submission artifacts require final legal validation.
+</div>
+
+<div class="container">
+  <div class="card">
+    <h3>✅ Overall Compliance Score (KPI-21)</h3>
+    <div id="score-block" class="loading">Loading compliance score...</div>
+  </div>
+
+  <div class="card">
+    <h3>🌿 Environmental Parameters</h3>
+    <div id="env-block" class="loading">Loading environmental snapshot...</div>
+  </div>
+
+  <div class="card full">
+    <h3>🧰 Inspection Due Dates</h3>
+    <div id="inspection-block" class="loading">Loading inspection table...</div>
+  </div>
+
+  <div class="card full">
+    <h3>🧾 Statutory Artifact Placeholder</h3>
+    <div class="btn-row">
+      <button id="btn-form7" class="btn">Generate Form 7 (JSON)</button>
+      <button id="btn-monthly" class="btn">Export Monthly Compliance Report (CSV)</button>
+    </div>
+    <pre id="artifact-output">No action yet.</pre>
+  </div>
+</div>
+
+<script>
+const API = "";
+
+function scoreColor(score) {
+  if (score > 95) return "chip-green";
+  if (score >= 85) return "chip-yellow";
+  return "chip-red";
+}
+
+async function loadSummary() {
+  const el = document.getElementById("score-block");
+  try {
+    const data = await fetch(`${API}/api/v1/compliance/summary`).then(r => r.json());
+    const score = Number(data.overallComplianceScore || 0);
+    const chip = scoreColor(score);
+    el.innerHTML = `
+      <div class="score">${score.toFixed(1)}%</div>
+      <div class="score-meta">
+        Machine: ${Number(data.machineCompliance || 0).toFixed(1)}% |
+        Human: ${Number(data.humanCompliance || 0).toFixed(1)}% |
+        Env: ${Number(data.environmentCompliance || 0).toFixed(1)}%
+      </div>
+      <div class="formula">${data.formula || "Machine*0.35 + Human*0.35 + Env*0.30"}</div>
+      <span class="chip ${chip}">${score > 95 ? "COMPLIANT" : score >= 85 ? "ATTENTION" : "NON-COMPLIANT"}</span>
+      <div class="updated">Updated: ${new Date().toLocaleTimeString("en-IN")}</div>
+    `;
+  } catch (e) {
+    el.innerHTML = `<div class="loading">Summary unavailable: ${e.message}</div>`;
+  }
+}
+
+async function loadEnvironment() {
+  const el = document.getElementById("env-block");
+  try {
+    const data = await fetch(`${API}/api/v1/compliance/environment`).then(r => r.json());
+    const status = (data.status || "UNKNOWN").toUpperCase();
+    const chip = status === "COMPLIANT" ? "chip-green" : "chip-red";
+    el.innerHTML = `
+      <div style="font-size:28px;font-weight:700">${Number(data.nh3StackPpm || 0).toFixed(1)} ppm</div>
+      <div class="score-meta">CPCB limit: ${Number(data.cpcbLimitPpm || 0).toFixed(1)} ppm</div>
+      <span class="chip ${chip}">${status}</span>
+      <div class="updated">Sample timestamp: ${data.timestamp || "-"}</div>
+    `;
+  } catch (e) {
+    el.innerHTML = `<div class="loading">Environment unavailable: ${e.message}</div>`;
+  }
+}
+
+async function loadInspections() {
+  const el = document.getElementById("inspection-block");
+  try {
+    const rows = await fetch(`${API}/api/v1/compliance/inspections`).then(r => r.json());
+    const html = rows.map(r => {
+      const status = (r.status || "ON_TRACK").toUpperCase();
+      const cls = status === "OVERDUE" ? "chip-red" : status === "DUE_SOON" ? "chip-yellow" : "chip-green";
+      return `
+        <tr>
+          <td>${r.machine}</td>
+          <td>${r.lastInspected}</td>
+          <td>${r.nextDue}</td>
+          <td><span class="chip ${cls}">${status}</span></td>
+        </tr>
+      `;
+    }).join("");
+    el.innerHTML = `
+      <table class="table">
+        <thead>
+          <tr><th>Machine</th><th>Last Inspected</th><th>Next Due</th><th>Status</th></tr>
+        </thead>
+        <tbody>${html}</tbody>
+      </table>
+      <div class="updated">Updated: ${new Date().toLocaleTimeString("en-IN")}</div>
+    `;
+  } catch (e) {
+    el.innerHTML = `<div class="loading">Inspection table unavailable: ${e.message}</div>`;
+  }
+}
+
+async function generateForm7() {
+  const output = document.getElementById("artifact-output");
+  try {
+    const data = await fetch(`${API}/api/compliance/form7`, { method: "POST" }).then(r => r.json());
+    output.textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    output.textContent = `Form 7 generation failed: ${e.message}`;
+  }
+}
+
+async function exportMonthly() {
+  const output = document.getElementById("artifact-output");
+  try {
+    const csv = await fetch(`${API}/api/compliance/monthly-report`).then(r => r.text());
+    output.textContent = csv;
+  } catch (e) {
+    output.textContent = `Monthly export failed: ${e.message}`;
+  }
+}
+
+document.getElementById("btn-form7").addEventListener("click", generateForm7);
+document.getElementById("btn-monthly").addEventListener("click", exportMonthly);
+
+async function refresh() {
+  await Promise.all([loadSummary(), loadEnvironment(), loadInspections()]);
+}
+
+refresh();
+setInterval(refresh, 120000);
+</script>
+</body>
+</html>

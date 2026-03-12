@@ -11,6 +11,7 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.AthenaClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
@@ -60,6 +61,14 @@ public class AwsConfig {
     @Bean
     public AthenaClient athenaClient() {
         return AthenaClient.builder()
+                .region(Region.of(region))
+                .credentialsProvider(buildCredentialsProvider())
+                .build();
+    }
+
+    @Bean
+    public S3Client s3Client() {
+        return S3Client.builder()
                 .region(Region.of(region))
                 .credentialsProvider(buildCredentialsProvider())
                 .build();
