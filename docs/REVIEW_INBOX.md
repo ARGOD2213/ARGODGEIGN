@@ -1,8 +1,16 @@
 # Review Inbox (Auto Synced)
 
-No reviewer drop has been synced yet.
+- Repository: ARGOD2213/ARGODGEIGN
+- Updated UTC: 2026-03-12T03:47:12Z
+- Event: manual/local-sync
+- Issue: #1
+- Link: https://github.com/ARGOD2213/ARGODGEIGN/issues/1
+- Actor: ARGOD2213
 
-Use:
-- `https://github.com/ARGOD2213/ARGODGEIGN/issues/new?template=reviewer-drop.yml`
+## Issue Title
+Review
 
-Then wait for workflow `Review Inbox Sync`.
+## Issue Body
+```text
+So the the ai agent still not ready yet go go through next steps and update in mobile chat what u have done and once completed post everything thing which review haven't done in the mobile chat 
+```

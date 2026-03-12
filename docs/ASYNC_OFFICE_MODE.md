@@ -30,6 +30,13 @@ Use this when you are away from desktop.
 6. Send this one message to Codex:
    - `Process docs/REVIEW_INBOX.md and implement all P1 then P2 fixes. Commit and push.`
 
+## Fallback if sync does not update in 2 minutes
+
+1. Open GitHub Actions.
+2. Run workflow: `Review Inbox Sync`.
+3. Optional input: `issue_number` (example `1`).
+4. Re-open `docs/REVIEW_INBOX.md`.
+
 ## If reviewer adds new comments later
 
 1. Add a comment on the same `[REVIEW]` issue.

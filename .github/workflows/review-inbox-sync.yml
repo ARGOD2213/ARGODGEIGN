@@ -5,6 +5,11 @@ on:
     types: [opened, edited, reopened, labeled]
   issue_comment:
     types: [created, edited]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to sync (leave empty to auto-pick latest open issue)"
+        required: false
 
 permissions:
   contents: write
@@ -12,7 +17,6 @@ permissions:
 
 jobs:
   sync-review:
-    if: startsWith(github.event.issue.title, '[REVIEW]')
     runs-on: ubuntu-latest
 
     steps:
@@ -25,16 +29,50 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           REPO: ${{ github.repository }}
           ACTOR: ${{ github.actor }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
         run: |
           set -euo pipefail
 
-          ISSUE_NUMBER=$(jq -r '.issue.number' "$EVENT_PATH")
-          ISSUE_TITLE=$(jq -r '.issue.title' "$EVENT_PATH")
-          ISSUE_URL=$(jq -r '.issue.html_url' "$EVENT_PATH")
-          ISSUE_BODY=$(jq -r '.issue.body // ""' "$EVENT_PATH")
           ACTION=$(jq -r '.action // ""' "$EVENT_PATH")
-          COMMENT_URL=$(jq -r '.comment.html_url // ""' "$EVENT_PATH")
-          COMMENT_BODY=$(jq -r '.comment.body // ""' "$EVENT_PATH")
+          COMMENT_URL=""
+          COMMENT_BODY=""
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            ISSUE_NUMBER="$INPUT_ISSUE_NUMBER"
+            if [ -z "$ISSUE_NUMBER" ]; then
+              ISSUE_NUMBER=$(curl -sS \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$REPO/issues?state=open&per_page=1&sort=updated&direction=desc" \
+                | jq -r '.[0].number')
+            fi
+
+            ISSUE_JSON=$(curl -sS \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER")
+
+            ISSUE_TITLE=$(printf "%s" "$ISSUE_JSON" | jq -r '.title')
+            ISSUE_URL=$(printf "%s" "$ISSUE_JSON" | jq -r '.html_url')
+            ISSUE_BODY=$(printf "%s" "$ISSUE_JSON" | jq -r '.body // ""')
+
+            LATEST_COMMENT=$(curl -sS \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/comments?per_page=1")
+
+            COMMENT_URL=$(printf "%s" "$LATEST_COMMENT" | jq -r '.[0].html_url // ""')
+            COMMENT_BODY=$(printf "%s" "$LATEST_COMMENT" | jq -r '.[0].body // ""')
+          else
+            ISSUE_NUMBER=$(jq -r '.issue.number' "$EVENT_PATH")
+            ISSUE_TITLE=$(jq -r '.issue.title' "$EVENT_PATH")
+            ISSUE_URL=$(jq -r '.issue.html_url' "$EVENT_PATH")
+            ISSUE_BODY=$(jq -r '.issue.body // ""' "$EVENT_PATH")
+            COMMENT_URL=$(jq -r '.comment.html_url // ""' "$EVENT_PATH")
+            COMMENT_BODY=$(jq -r '.comment.body // ""' "$EVENT_PATH")
+          fi
+
           NOW_UTC=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
           mkdir -p docs

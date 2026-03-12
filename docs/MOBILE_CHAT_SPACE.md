@@ -37,9 +37,16 @@ To type from phone, use one of these:
    - `docs/REVIEW_INBOX.md`
 5. Send Codex:
    - `Process docs/REVIEW_INBOX.md and implement all P1 then P2 fixes. Commit and push.`
+6. If sync does not update in 2 minutes:
+   - Run workflow `Review Inbox Sync` manually from Actions.
+   - Pass `issue_number` if needed.
 
 ## Latest Update (IST)
 
+- Auto-sync trigger hardened:
+  - Works for normal `Review` issue titles too.
+  - Added manual Action run fallback (`Review Inbox Sync` with `issue_number`).
+- Synced current Issue `#1` into `docs/REVIEW_INBOX.md`.
 - Sprint 1: Closed.
 - Sprint 2 progress in repo: machine, safety, plant, compliance dashboards added.
 - LLM confidence, advisory wrapper, and day-by-day evidence files are committed.
