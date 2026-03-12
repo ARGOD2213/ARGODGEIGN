@@ -26,7 +26,8 @@ public class CacheConfig {
                 "machine-trends",
                 "kpi-oee",
                 "platform-status",
-                "dlq-status"
+                "dlq-status",
+                "weather"
         ));
         cacheManager.setCaffeine(Caffeine.newBuilder()
                 .expireAfterWrite(Duration.ofMinutes(5))

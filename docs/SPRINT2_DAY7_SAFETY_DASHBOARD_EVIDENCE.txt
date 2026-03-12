@@ -1,0 +1,184 @@
+ARGODREIGN Sprint 2 Day 7 - Safety Dashboard Evidence
+Timestamp: 2026-03-12 07:50:54 +05:30
+
+Build command: mvn -q -DskipTests package -> PASS
+
+1) Safety dashboard page reachable
+GET /safety.html -> HTTP 200
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ARGODREIGN ??? Human Safety Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+    }
+
+    /* ?????? TOP BAR ?????? */
+    .topbar {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .topbar h1 { font-size:16px; font-weight:700; color:#58a6ff; letter-spacing:1px; }
+    .topbar nav a {
+      color:#8b949e; text-decoration:none;
+      font-size:13px; margin-left:20px;
+    }
+    .topbar nav a:hover { color:#e6edf3; }
+    .topbar nav a.active { color:#58a6ff; font-weight:600; }
+
+    /* ?????? ADVISORY BANNER ?????? */
+    .advisory-banner {
+      background:#1a0a00;
+      border-bottom:2px solid #d29922;
+      padding:8px 24px;
+      font-size:12px; font-weight:700;
+      color:#e3b341; text-align:center;
+    }
+
+    /* ?????? GRID ?????? */
+    
+
+2) Weather endpoint (WBGT source)
+GET /api/v1/weather/current
+{
+    "temperature":  28.0,
+    "humidity":  50.0,
+    "condition":  "Clear",
+    "windSpeed":  3.0,
+    "source":  "SYNTHETIC_FALLBACK"
+}
+
+3) NH3 zones endpoint
+GET /api/v1/safety/nh3-zones
+[
+    {
+        "ppm":  8.2,
+        "zone":  "SYNTHESIS",
+        "twa8h":  7.1
+    },
+    {
+        "ppm":  18.5,
+        "zone":  "COMPRESSOR",
+        "twa8h":  14.2
+    },
+    {
+        "ppm":  4.1,
+        "zone":  "STORAGE",
+        "twa8h":  3.8
+    },
+    {
+        "ppm":  22.3,
+        "zone":  "UREA_HP",
+        "twa8h":  19.1
+    },
+    {
+        "ppm":  2.0,
+        "zone":  "UTILITY",
+        "twa8h":  1.9
+    }
+]
+
+4) Fatigue endpoint
+GET /api/v1/safety/fatigue
+[
+    {
+        "days":  5,
+        "hoursToday":  9,
+        "shiftHour":  7,
+        "name":  "Field Op-A1",
+        "score":  75
+    },
+    {
+        "days":  3,
+        "hoursToday":  7,
+        "shiftHour":  7,
+        "name":  "Field Op-A2",
+        "score":  59
+    },
+    {
+        "days":  6,
+        "hoursToday":  11,
+        "shiftHour":  7,
+        "name":  "Maint-B1",
+        "score":  80
+    },
+    {
+        "days":  2,
+        "hoursToday":  6,
+        "shiftHour":  7,
+        "name":  "Maint-B2",
+        "score":  46
+    },
+    {
+        "days":  4,
+        "hoursToday":  8,
+        "shiftHour":  22,
+        "name":  "Ctrl Room-C",
+        "score":  90
+    }
+]
+
+5) PTW endpoint
+GET /api/v1/safety/ptw
+[
+    {
+        "zone":  "SYNTHESIS",
+        "expires":  "18:00",
+        "issuedTo":  "Ravi K.",
+        "type":  "Hot Work",
+        "status":  "ACTIVE"
+    },
+    {
+        "zone":  "COMPRESSOR",
+        "expires":  "16:00",
+        "issuedTo":  "Suresh M.",
+        "type":  "Confined Space",
+        "status":  "ISSUED"
+    },
+    {
+        "zone":  "STORAGE",
+        "expires":  "-",
+        "issuedTo":  "Anil P.",
+        "type":  "Height Work",
+        "status":  "CLOSED"
+    },
+    {
+        "zone":  "UREA_HP",
+        "expires":  "-",
+        "issuedTo":  "-",
+        "type":  "Maintenance",
+        "status":  "NONE"
+    },
+    {
+        "zone":  "UTILITY",
+        "expires":  "20:00",
+        "issuedTo":  "Kiran R.",
+        "type":  "Electrical",
+        "status":  "SUSPENDED"
+    }
+]
+
+6) Checklist confirmation
+- WBGT rendered from /api/v1/weather/current (or fallback if API unavailable).
+- NH3 zone bars have ppm + twa8h values.
+- Fatigue cards have computed scores.
+- PTW includes NONE status for red-flag path.
+- Summary data sources status: READY
+
+7) Fallback handlers present in safety.html
+- loadWBGT catch path present
+- loadNH3Zones catch path present
+- loadFatigue catch path present
+- loadPTW catch path present
+- loadSummary handles non-array payloads

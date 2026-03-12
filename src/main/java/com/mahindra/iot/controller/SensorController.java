@@ -5,6 +5,7 @@ import com.mahindra.iot.model.SensorEvent;
 import com.mahindra.iot.service.DashboardService;
 import com.mahindra.iot.service.PredictiveMaintenanceService;
 import com.mahindra.iot.service.SensorEventService;
+import com.mahindra.iot.service.WeatherService;
 import com.mahindra.iot.util.AiAdvisoryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,6 +28,7 @@ public class SensorController {
     private final SensorEventService sensorEventService;
     private final DashboardService dashboardService;
     private final PredictiveMaintenanceService predictiveMaintenanceService;
+    private final WeatherService weatherService;
 
     @PostMapping("/sensor/ingest")
     @Operation(summary = "Ingest sensor telemetry",
@@ -93,5 +95,19 @@ public class SensorController {
             "service", "ARGODREIGN IoT Alert Engine",
             "version", "2.0.0"
         ));
+    }
+
+    @GetMapping("/weather/current")
+    @Operation(summary = "Current weather snapshot for safety dashboard")
+    public ResponseEntity<Map<String, Object>> getCurrentWeather(@RequestParam(defaultValue = "17.3850") double lat,
+                                                                 @RequestParam(defaultValue = "78.4867") double lon) {
+        WeatherService.WeatherData weather = weatherService.getWeather(lat, lon);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("temperature", weather.getTempC());
+        payload.put("humidity", weather.getHumidity());
+        payload.put("condition", weather.getCondition());
+        payload.put("windSpeed", weather.getWindSpeed());
+        payload.put("source", weather.isAvailable() ? "OPENWEATHER" : "SYNTHETIC_FALLBACK");
+        return ResponseEntity.ok(payload);
     }
 }
