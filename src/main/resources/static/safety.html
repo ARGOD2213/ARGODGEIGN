@@ -161,6 +161,25 @@
       font-weight:700;
       flex-shrink:0;
     }
+    .dispersion-meta {
+      font-size:11px;
+      color:#8b949e;
+      margin:-8px 0 10px 112px;
+      line-height:1.6;
+    }
+    .dispersion-arrow {
+      display:inline-block;
+      min-width:26px;
+      font-size:14px;
+      font-weight:700;
+      color:#58a6ff;
+    }
+    .evac-zone {
+      font-weight:700;
+    }
+    .evac-zone.alert {
+      color:#f85149;
+    }
 
     /* ── FATIGUE ── */
     .fatigue-grid {
@@ -448,6 +467,20 @@ async function loadWBGT() {
 const NH3_TLV_TWA  = 25;
 const NH3_TLV_STEL = 35;
 
+function getDispersionArrow(direction) {
+  switch ((direction || '').toUpperCase()) {
+    case 'NORTH': return '↑';
+    case 'NORTHEAST': return '↗';
+    case 'EAST': return '→';
+    case 'SOUTHEAST': return '↘';
+    case 'SOUTH': return '↓';
+    case 'SOUTHWEST': return '↙';
+    case 'WEST': return '←';
+    case 'NORTHWEST': return '↖';
+    default: return '→';
+  }
+}
+
 function getNH3Color(ppm) {
   if (ppm >= NH3_TLV_STEL) return '#f85149';
   if (ppm >= NH3_TLV_TWA)  return '#f85149';
@@ -474,11 +507,11 @@ async function loadNH3Zones() {
   } catch(e) {
     // Synthetic fallback for demo
     const zones = [
-      { zone:'SYNTHESIS',   ppm: 8.2,  twa8h: 7.1  },
-      { zone:'COMPRESSOR',  ppm: 18.5, twa8h: 14.2 },
-      { zone:'STORAGE',     ppm: 4.1,  twa8h: 3.8  },
-      { zone:'UREA_HP',     ppm: 22.3, twa8h: 19.1 },
-      { zone:'UTILITY',     ppm: 2.0,  twa8h: 1.9  },
+      { zone:'SYNTHESIS',   ppm: 8.2,  twa8h: 7.1,  windDeg:245.0, nh3DispersionDirection:'NORTHEAST', evacuationZone:'Muster Point B (leeward side)' },
+      { zone:'COMPRESSOR',  ppm: 18.5, twa8h: 14.2, windDeg:245.0, nh3DispersionDirection:'NORTHEAST', evacuationZone:'Muster Point B (leeward side)' },
+      { zone:'STORAGE',     ppm: 4.1,  twa8h: 3.8,  windDeg:245.0, nh3DispersionDirection:'NORTHEAST', evacuationZone:'Muster Point B (leeward side)' },
+      { zone:'UREA_HP',     ppm: 22.3, twa8h: 19.1, windDeg:245.0, nh3DispersionDirection:'NORTHEAST', evacuationZone:'Muster Point B (leeward side)' },
+      { zone:'UTILITY',     ppm: 2.0,  twa8h: 1.9,  windDeg:245.0, nh3DispersionDirection:'NORTHEAST', evacuationZone:'Muster Point B (leeward side)' },
     ];
     renderNH3(zones);
     document.getElementById('nh3-updated').textContent =
@@ -493,6 +526,9 @@ function renderNH3(zones) {
   section.innerHTML = zones.map(z => {
     const pct   = tlvPct(z.ppm);
     const color = getNH3Color(z.ppm);
+    const evacuationClass = z.ppm > 10 ? 'evac-zone alert' : 'evac-zone';
+    const dispersionDirection = z.nh3DispersionDirection || 'NORTHEAST';
+    const arrow = getDispersionArrow(dispersionDirection);
     return `
     <div class="zone-row">
       <div class="zone-name">${z.zone}</div>
@@ -504,12 +540,17 @@ function renderNH3(zones) {
       </div>
       <div class="zone-sev">${getNH3Status(z.ppm)}</div>
     </div>
-    <div style="font-size:11px;color:#8b949e;
-                margin:-8px 0 10px 112px">
+    <div class="dispersion-meta">
       8hr TWA: ${z.twa8h || z.ppm} ppm
       ${z.twa8h >= NH3_TLV_TWA
         ? '<span style="color:#f85149"> ⚠ Factories Act Schedule 8 breach</span>'
         : ''}
+      <br>
+      <span class="dispersion-arrow">${arrow}</span>
+      Wind ${Number(z.windDeg || 245).toFixed(1)}Â° -> NH3 disperses to ${dispersionDirection}
+      <br>
+      Evacuation zone:
+      <span class="${evacuationClass}">${z.evacuationZone || 'Muster Point B (leeward side)'}</span>
     </div>`;
   }).join('') +
   `<div style="font-size:11px;color:#8b949e;margin-top:8px">

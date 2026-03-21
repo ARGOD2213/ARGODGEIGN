@@ -31,6 +31,7 @@ public class WeatherService {
         private double humidity;
         private String condition;
         private double windSpeed;
+        private double windDeg;
         private boolean available;
     }
 
@@ -66,6 +67,7 @@ public class WeatherService {
                     .humidity(((Number) main.getOrDefault("humidity", 50.0)).doubleValue())
                     .condition(condition)
                     .windSpeed(wind != null ? ((Number) wind.getOrDefault("speed", 3.0)).doubleValue() : 3.0)
+                    .windDeg(wind != null ? ((Number) wind.getOrDefault("deg", 0.0)).doubleValue() : 0.0)
                     .available(true)
                     .build();
         } catch (Exception e) {
@@ -76,7 +78,24 @@ public class WeatherService {
 
     private WeatherData defaultWeather() {
         return WeatherData.builder()
-                .tempC(28.0).humidity(50.0).condition("Clear").windSpeed(3.0).available(false)
+                .tempC(28.0).humidity(50.0).condition("Clear").windSpeed(3.0).windDeg(245.0).available(false)
                 .build();
+    }
+
+    /**
+     * Returns the cardinal evacuation direction downwind of NH3 release.
+     * Wind blows FROM windDeg, so NH3 disperses TO opposite direction.
+     * IEC 62443 + ALOHA dispersion model requirement - RB-02.
+     */
+    public String getNh3DispersionDirection(double windDeg) {
+        double dispersionDeg = (windDeg + 180.0) % 360.0;
+        if (dispersionDeg < 22.5 || dispersionDeg >= 337.5) return "NORTH";
+        if (dispersionDeg < 67.5) return "NORTHEAST";
+        if (dispersionDeg < 112.5) return "EAST";
+        if (dispersionDeg < 157.5) return "SOUTHEAST";
+        if (dispersionDeg < 202.5) return "SOUTH";
+        if (dispersionDeg < 247.5) return "SOUTHWEST";
+        if (dispersionDeg < 292.5) return "WEST";
+        return "NORTHWEST";
     }
 }

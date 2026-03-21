@@ -1,7 +1,9 @@
 package com.mahindra.iot.controller;
 
+import com.mahindra.iot.service.WeatherService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,17 +16,26 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/safety")
 @Tag(name = "Safety Dashboard API", description = "Synthetic safety endpoints for Sprint 2 safety dashboard")
+@RequiredArgsConstructor
 public class SafetyController {
+
+    private static final String EVACUATION_ZONE = "Muster Point B (leeward side)";
+
+    private final WeatherService weatherService;
 
     @GetMapping("/nh3-zones")
     @Operation(summary = "NH3 concentration by zone")
     public ResponseEntity<List<Map<String, Object>>> getNh3Zones() {
+        WeatherService.WeatherData weather = weatherService.getWeather(17.3850, 78.4867);
+        double windDeg = weather.getWindDeg();
+        String dispersionDirection = weatherService.getNh3DispersionDirection(windDeg);
+
         List<Map<String, Object>> zones = List.of(
-                Map.of("zone", "SYNTHESIS", "ppm", 8.2, "twa8h", 7.1),
-                Map.of("zone", "COMPRESSOR", "ppm", 18.5, "twa8h", 14.2),
-                Map.of("zone", "STORAGE", "ppm", 4.1, "twa8h", 3.8),
-                Map.of("zone", "UREA_HP", "ppm", 22.3, "twa8h", 19.1),
-                Map.of("zone", "UTILITY", "ppm", 2.0, "twa8h", 1.9)
+                nh3Zone("SYNTHESIS", 8.2, 7.1, windDeg, dispersionDirection),
+                nh3Zone("COMPRESSOR", 18.5, 14.2, windDeg, dispersionDirection),
+                nh3Zone("STORAGE", 4.1, 3.8, windDeg, dispersionDirection),
+                nh3Zone("UREA_HP", 22.3, 19.1, windDeg, dispersionDirection),
+                nh3Zone("UTILITY", 2.0, 1.9, windDeg, dispersionDirection)
         );
         return ResponseEntity.ok(zones);
     }
@@ -64,6 +75,21 @@ public class SafetyController {
                 "days", days,
                 "shiftHour", shiftHour,
                 "score", score
+        );
+    }
+
+    private Map<String, Object> nh3Zone(String zone,
+                                        double ppm,
+                                        double twa8h,
+                                        double windDeg,
+                                        String dispersionDirection) {
+        return Map.of(
+                "zone", zone,
+                "ppm", ppm,
+                "twa8h", twa8h,
+                "windDeg", windDeg,
+                "nh3DispersionDirection", dispersionDirection,
+                "evacuationZone", EVACUATION_ZONE
         );
     }
 
