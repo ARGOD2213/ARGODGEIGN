@@ -10,3 +10,14 @@ out.json
 ~$*.docx
 *.pem
 data/
+# Local session docs - not source artifacts
+docs/AI_RESPONSE_TEMPLATE.md
+docs/ARGODREIGN_Industrial_AI_Master_Prompt_extracted.txt
+docs/CROSS_MODEL_SCORECARD.md
+docs/INDUSTRIAL_REVIEW_BOARD_REPORT.txt
+docs/MASTER_REALITY_CHECK_PROMPT_COMBINED_SINGLE_COPY.txt
+docs/MASTER_REALITY_CHECK_PROMPT_V2.md
+docs/SPRINT1_STRICT_AUDIT_PROMPT.md
+
+# Build artifacts
+build/
