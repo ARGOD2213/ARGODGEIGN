@@ -210,6 +210,24 @@
       padding:2px 6px;
       border-radius:4px;
     }
+    .twa-track {
+      width:100%;
+      height:8px;
+      background:#30363d;
+      border-radius:999px;
+      overflow:hidden;
+      margin-top:10px;
+    }
+    .twa-fill {
+      height:100%;
+      border-radius:999px;
+    }
+    .twa-meta {
+      margin-top:8px;
+      font-size:11px;
+      color:#8b949e;
+      line-height:1.5;
+    }
 
     /* ── PTW TABLE ── */
     .ptw-table {
@@ -589,6 +607,12 @@ function getFatigueStatus(score) {
   return                   { label:'FIT FOR DUTY',  bg:'#0d4429', color:'#3fb950' };
 }
 
+function getExposureColor(status) {
+  if (status === 'RED') return '#f85149';
+  if (status === 'YELLOW') return '#e3b341';
+  return '#3fb950';
+}
+
 async function loadFatigue() {
   const section = document.getElementById('fatigue-section');
   try {
@@ -598,11 +622,11 @@ async function loadFatigue() {
   } catch(e) {
     const hour = new Date().getHours();
     const workers = [
-      { name:'Field Op-A1', hoursToday:9,  days:5, shiftHour:hour },
-      { name:'Field Op-A2', hoursToday:7,  days:3, shiftHour:hour },
-      { name:'Maint-B1',    hoursToday:11, days:6, shiftHour:hour },
-      { name:'Maint-B2',    hoursToday:6,  days:2, shiftHour:hour },
-      { name:'Ctrl Room-C', hoursToday:8,  days:4, shiftHour:22  },
+      { workerId:'W-042', name:'Field Op-A1', zone:'SYNTHESIS', hoursToday:9,  days:5, shiftHour:hour, shiftTwa:12.4, twaStatus:'GREEN', stelCurrent:18.2, stelStatus:'YELLOW', acgihTlvTwa:25.0, acgihTlvStel:35.0 },
+      { workerId:'W-043', name:'Field Op-A2', zone:'COMPRESSOR', hoursToday:7,  days:3, shiftHour:hour, shiftTwa:13.3, twaStatus:'GREEN', stelCurrent:21.4, stelStatus:'YELLOW', acgihTlvTwa:25.0, acgihTlvStel:35.0 },
+      { workerId:'W-044', name:'Maint-B1', zone:'UREA_HP', hoursToday:11, days:6, shiftHour:hour, shiftTwa:16.1, twaStatus:'YELLOW', stelCurrent:28.7, stelStatus:'YELLOW', acgihTlvTwa:25.0, acgihTlvStel:35.0 },
+      { workerId:'W-045', name:'Maint-B2', zone:'STORAGE', hoursToday:6,  days:2, shiftHour:hour, shiftTwa:7.2, twaStatus:'GREEN', stelCurrent:12.6, stelStatus:'GREEN', acgihTlvTwa:25.0, acgihTlvStel:35.0 },
+      { workerId:'W-046', name:'Ctrl Room-C', zone:'UTILITY', hoursToday:8,  days:4, shiftHour:22, shiftTwa:4.2, twaStatus:'GREEN', stelCurrent:9.8, stelStatus:'GREEN', acgihTlvTwa:25.0, acgihTlvStel:35.0 },
     ].map(w => ({
       ...w,
       score: computeFAID(w.hoursToday, w.days, w.shiftHour)
@@ -618,12 +642,25 @@ function renderFatigue(workers) {
       const score  = w.score ?? computeFAID(w.hoursToday||8, w.days||3, new Date().getHours());
       const color  = getFatigueColor(score);
       const status = getFatigueStatus(score);
+      const twa = Number(w.shiftTwa || 0);
+      const twaStatus = w.twaStatus || 'GREEN';
+      const twaColor = getExposureColor(twaStatus);
+      const twaWidth = Math.min((twa / Number(w.acgihTlvTwa || 25)) * 100, 100);
+      const stelColor = getExposureColor(w.stelStatus || 'GREEN');
       return `<div class="fatigue-card">
         <div class="fatigue-score" style="color:${color}">${score}</div>
         <div class="fatigue-name">${w.name || w.workerId}</div>
         <div class="fatigue-status"
              style="background:${status.bg};color:${status.color}">
           ${status.label}
+        </div>
+        <div class="twa-track">
+          <div class="twa-fill" style="width:${twaWidth}%;background:${twaColor}"></div>
+        </div>
+        <div class="twa-meta">
+          ${w.zone || 'ZONE'} | ${w.workerId || 'W-000'}<br>
+          Shift TWA: <span style="color:${twaColor};font-weight:700">${twa.toFixed(1)} ppm (${twaStatus})</span><br>
+          STEL Current: <span style="color:${stelColor};font-weight:700">${Number(w.stelCurrent || 0).toFixed(1)} ppm (${w.stelStatus || 'GREEN'})</span>
         </div>
       </div>`;
     }).join('')}

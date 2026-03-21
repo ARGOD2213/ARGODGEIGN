@@ -1,6 +1,7 @@
 package com.mahindra.iot.controller;
 
 import com.mahindra.iot.service.WeatherService;
+import com.mahindra.iot.service.WorkerExposureService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +24,7 @@ public class SafetyController {
     private static final String EVACUATION_ZONE = "Muster Point B (leeward side)";
 
     private final WeatherService weatherService;
+    private final WorkerExposureService workerExposureService;
 
     @GetMapping("/nh3-zones")
     @Operation(summary = "NH3 concentration by zone")
@@ -45,11 +48,36 @@ public class SafetyController {
     public ResponseEntity<List<Map<String, Object>>> getFatigue() {
         int hour = LocalTime.now().getHour();
         List<Map<String, Object>> workers = List.of(
-                worker("Field Op-A1", 9, 5, hour),
-                worker("Field Op-A2", 7, 3, hour),
-                worker("Maint-B1", 11, 6, hour),
-                worker("Maint-B2", 6, 2, hour),
-                worker("Ctrl Room-C", 8, 4, 22)
+                worker("W-042", "Field Op-A1", "SYNTHESIS", 9, 5, hour, 18.2,
+                        List.of(
+                                new WorkerExposureService.ExposureEntry(14.0, 120),
+                                new WorkerExposureService.ExposureEntry(10.0, 180),
+                                new WorkerExposureService.ExposureEntry(15.5, 180)
+                        )),
+                worker("W-043", "Field Op-A2", "COMPRESSOR", 7, 3, hour, 21.4,
+                        List.of(
+                                new WorkerExposureService.ExposureEntry(16.0, 160),
+                                new WorkerExposureService.ExposureEntry(12.0, 180),
+                                new WorkerExposureService.ExposureEntry(11.0, 140)
+                        )),
+                worker("W-044", "Maint-B1", "UREA_HP", 11, 6, hour, 28.7,
+                        List.of(
+                                new WorkerExposureService.ExposureEntry(19.0, 150),
+                                new WorkerExposureService.ExposureEntry(16.0, 210),
+                                new WorkerExposureService.ExposureEntry(14.0, 120)
+                        )),
+                worker("W-045", "Maint-B2", "STORAGE", 6, 2, hour, 12.6,
+                        List.of(
+                                new WorkerExposureService.ExposureEntry(8.0, 180),
+                                new WorkerExposureService.ExposureEntry(10.0, 180),
+                                new WorkerExposureService.ExposureEntry(6.5, 120)
+                        )),
+                worker("W-046", "Ctrl Room-C", "UTILITY", 8, 4, 22, 9.8,
+                        List.of(
+                                new WorkerExposureService.ExposureEntry(6.0, 180),
+                                new WorkerExposureService.ExposureEntry(4.0, 180),
+                                new WorkerExposureService.ExposureEntry(3.5, 120)
+                        ))
         );
         return ResponseEntity.ok(workers);
     }
@@ -67,15 +95,31 @@ public class SafetyController {
         return ResponseEntity.ok(ptw);
     }
 
-    private Map<String, Object> worker(String name, int hoursToday, int days, int shiftHour) {
+    private Map<String, Object> worker(String workerId,
+                                       String name,
+                                       String zone,
+                                       int hoursToday,
+                                       int days,
+                                       int shiftHour,
+                                       double stelCurrent,
+                                       List<WorkerExposureService.ExposureEntry> exposures) {
         int score = computeFaid(hoursToday, days, shiftHour);
-        return Map.of(
-                "name", name,
-                "hoursToday", hoursToday,
-                "days", days,
-                "shiftHour", shiftHour,
-                "score", score
-        );
+        double shiftTwa = workerExposureService.computeTwa(exposures);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("zone", zone);
+        payload.put("workerId", workerId);
+        payload.put("name", name);
+        payload.put("hoursToday", hoursToday);
+        payload.put("days", days);
+        payload.put("shiftHour", shiftHour);
+        payload.put("score", score);
+        payload.put("shiftTwa", roundOneDecimal(shiftTwa));
+        payload.put("twaStatus", workerExposureService.getTwaStatus(shiftTwa));
+        payload.put("stelCurrent", stelCurrent);
+        payload.put("stelStatus", getStelStatus(stelCurrent));
+        payload.put("acgihTlvTwa", 25.0);
+        payload.put("acgihTlvStel", 35.0);
+        return payload;
     }
 
     private Map<String, Object> nh3Zone(String zone,
@@ -101,5 +145,19 @@ public class SafetyController {
             score += 20;
         }
         return Math.min(score, 100);
+    }
+
+    private String getStelStatus(double stelCurrent) {
+        if (stelCurrent > 35.0) {
+            return "RED";
+        }
+        if (stelCurrent > 15.0) {
+            return "YELLOW";
+        }
+        return "GREEN";
+    }
+
+    private double roundOneDecimal(double value) {
+        return Math.round(value * 10.0) / 10.0;
     }
 }
