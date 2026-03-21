@@ -102,11 +102,17 @@ public class SensorController {
     public ResponseEntity<Map<String, Object>> getCurrentWeather(@RequestParam(defaultValue = "17.3850") double lat,
                                                                  @RequestParam(defaultValue = "78.4867") double lon) {
         WeatherService.WeatherData weather = weatherService.getWeather(lat, lon);
+        double wbgt = weather.getWbgt();
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("temperature", weather.getTempC());
         payload.put("humidity", weather.getHumidity());
         payload.put("condition", weather.getCondition());
         payload.put("windSpeed", weather.getWindSpeed());
+        payload.put("windDeg", weather.getWindDeg());
+        payload.put("wbgt", wbgt);
+        payload.put("wbgtWorkRestBand", weatherService.getWbgtWorkRestBand(wbgt));
+        payload.put("wbgtStatus", weatherService.getWbgtStatus(wbgt));
+        payload.put("isoReference", "ISO 7933:2004");
         payload.put("source", weather.isAvailable() ? "OPENWEATHER" : "SYNTHETIC_FALLBACK");
         return ResponseEntity.ok(payload);
     }

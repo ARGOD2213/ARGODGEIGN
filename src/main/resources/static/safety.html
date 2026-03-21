@@ -408,13 +408,11 @@ async function loadWBGT() {
     const r = await fetch('/api/v1/weather/current');
     const w = await r.json();
 
-    const temp     = w.temperature ?? w.temp ?? w.main?.temp ?? 32;
-    const humidity = w.humidity ?? w.main?.humidity ?? 60;
-    const hour     = new Date().getHours();
-    const isDay    = hour >= 6 && hour <= 18;
-
-    const wbgt = computeWBGT(temp, humidity, isDay);
-    const band = getWBGTBand(wbgt);
+    const temp = Number(w.temperature || 0);
+    const humidity = Number(w.humidity || 0);
+    const wbgt = Number(w.wbgt || 0);
+    const workRestBand = w.wbgtWorkRestBand || 'NORMAL';
+    const band = getWBGTBand(wbgt, workRestBand);
 
     const bands = [
       { range:'< 26°C',  label:'Normal',     cls:'band-normal',   active: wbgt < 26 },
@@ -428,10 +426,10 @@ async function loadWBGT() {
       <div class="wbgt-main">
         <div class="wbgt-value" style="color:${band.color}">${wbgt}°</div>
         <div class="wbgt-meta">
-          <div class="wbgt-label" style="color:${band.color}">${band.label}</div>
+          <div class="wbgt-label" style="color:${band.color}">${w.wbgtStatus || band.label}</div>
           <div class="wbgt-sub">
             Temp: ${temp}°C | Humidity: ${humidity}%<br>
-            ${isDay ? 'Daytime (solar load applied)' : 'Night-time'}
+            Work-Rest Band: ${workRestBand} | ${w.isoReference || 'ISO 7933:2004'}
           </div>
         </div>
       </div>
@@ -454,9 +452,10 @@ async function loadWBGT() {
     return { wbgt, band };
 
   } catch(e) {
-    // Fallback: compute from synthetic values
-    const wbgt = computeWBGT(35, 65, true);
-    const band = getWBGTBand(wbgt);
+    section.innerHTML = `<div class="loading">WBGT unavailable: ${e.message}</div>`;
+    document.getElementById('wbgt-updated').textContent = 'Live weather endpoint unavailable';
+    return { wbgt: 0, band: getWBGTBand(0) };
+    /*
     section.innerHTML = `
       <div class="wbgt-main">
         <div class="wbgt-value" style="color:${band.color}">${wbgt}°</div>
@@ -475,6 +474,7 @@ async function loadWBGT() {
     document.getElementById('wbgt-updated').textContent =
       'Synthetic fallback — weather API unreachable';
     return { wbgt, band };
+    */
   }
 }
 

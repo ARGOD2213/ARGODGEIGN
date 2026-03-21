@@ -32,6 +32,7 @@ public class WeatherService {
         private String condition;
         private double windSpeed;
         private double windDeg;
+        private double wbgt;
         private boolean available;
     }
 
@@ -62,12 +63,16 @@ public class WeatherService {
                 condition = (String) w.getOrDefault("main", "Clear");
             }
 
+            double tempC = ((Number) main.getOrDefault("temp", 28.0)).doubleValue();
+            double humidityPct = ((Number) main.getOrDefault("humidity", 50.0)).doubleValue();
+
             return WeatherData.builder()
-                    .tempC(((Number) main.getOrDefault("temp", 28.0)).doubleValue())
-                    .humidity(((Number) main.getOrDefault("humidity", 50.0)).doubleValue())
+                    .tempC(tempC)
+                    .humidity(humidityPct)
                     .condition(condition)
                     .windSpeed(wind != null ? ((Number) wind.getOrDefault("speed", 3.0)).doubleValue() : 3.0)
                     .windDeg(wind != null ? ((Number) wind.getOrDefault("deg", 0.0)).doubleValue() : 0.0)
+                    .wbgt(computeWbgt(tempC, humidityPct))
                     .available(true)
                     .build();
         } catch (Exception e) {
@@ -78,8 +83,46 @@ public class WeatherService {
 
     private WeatherData defaultWeather() {
         return WeatherData.builder()
-                .tempC(28.0).humidity(50.0).condition("Clear").windSpeed(3.0).windDeg(245.0).available(false)
+                .tempC(28.0).humidity(50.0).condition("Clear").windSpeed(3.0).windDeg(245.0)
+                .wbgt(computeWbgt(28.0, 50.0)).available(false)
                 .build();
+    }
+
+    /**
+     * Outdoor WBGT approximation from OpenWeatherMap fields.
+     * ISO 7933:2004 - Ergonomics, heat stress.
+     * RB-07 - Sprint 3.
+     *
+     * Tw = wet bulb temp (approx from temp + humidity)
+     * Tg = globe temp (approx as temp + 2 for outdoor sunny)
+     * Td = dry bulb temp
+     * WBGT_outdoor = 0.7*Tw + 0.2*Tg + 0.1*Td
+     */
+    public double computeWbgt(double tempC, double humidityPct) {
+        double td = tempC;
+        double tw = tempC * Math.atan(0.151977 * Math.sqrt(humidityPct + 8.313659))
+                + Math.atan(tempC + humidityPct)
+                - Math.atan(humidityPct - 1.676331)
+                + 0.00391838 * Math.pow(humidityPct, 1.5) * Math.atan(0.023101 * humidityPct)
+                - 4.686035;
+        double tg = tempC + 2.0;
+        return Math.round((0.7 * tw + 0.2 * tg + 0.1 * td) * 10.0) / 10.0;
+    }
+
+    public String getWbgtWorkRestBand(double wbgt) {
+        if (wbgt > 35) return "STOP_OUTDOOR_WORK";
+        if (wbgt > 32) return "25_75";
+        if (wbgt > 30) return "50_50";
+        if (wbgt > 28) return "75_25";
+        if (wbgt > 26) return "CAUTION";
+        return "NORMAL";
+    }
+
+    public String getWbgtStatus(double wbgt) {
+        if (wbgt > 32) return "CRITICAL";
+        if (wbgt > 28) return "WARNING";
+        if (wbgt > 26) return "CAUTION";
+        return "NORMAL";
     }
 
     /**
