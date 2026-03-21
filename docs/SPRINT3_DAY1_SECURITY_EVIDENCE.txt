@@ -1,0 +1,164 @@
+ACTION 3 - SSH port 22 restrict to /32
+Date: 2026-03-21
+Region: ap-south-1
+InstanceId: i-0761b14159f2e2a3f
+
+STEP 1 COMMAND
+aws ec2 describe-instances --instance-ids i-0761b14159f2e2a3f --region ap-south-1 --query "Reservations[0].Instances[0].SecurityGroups"
+
+STEP 1 OUTPUT
+[
+    {
+        "GroupId": "sg-00ebba671bb6e22fb",
+        "GroupName": "argodreign-sg"
+    }
+]
+
+STEP 2 COMMAND
+aws ec2 revoke-security-group-ingress --group-id sg-00ebba671bb6e22fb --protocol tcp --port 22 --cidr 0.0.0.0/0 --region ap-south-1
+
+STEP 2 OUTPUT
+{
+    "Return": true,
+    "RevokedSecurityGroupRules": [
+        {
+            "SecurityGroupRuleId": "sgr-0da226790c44e2784",
+            "GroupId": "sg-00ebba671bb6e22fb",
+            "IsEgress": false,
+            "IpProtocol": "tcp",
+            "FromPort": 22,
+            "ToPort": 22,
+            "CidrIpv4": "0.0.0.0/0"
+        }
+    ]
+}
+
+STEP 3 SUPPORT COMMAND
+curl.exe -4 -s ifconfig.me
+
+STEP 3 SUPPORT OUTPUT
+49.43.228.38
+
+STEP 3 COMMAND
+aws ec2 authorize-security-group-ingress --group-id sg-00ebba671bb6e22fb --protocol tcp --port 22 --cidr 49.43.228.38/32 --region ap-south-1
+
+STEP 3 OUTPUT
+{
+    "Return": true,
+    "SecurityGroupRules": [
+        {
+            "SecurityGroupRuleId": "sgr-0201f2883ece0b0cf",
+            "GroupId": "sg-00ebba671bb6e22fb",
+            "GroupOwnerId": "061039801536",
+            "IsEgress": false,
+            "IpProtocol": "tcp",
+            "FromPort": 22,
+            "ToPort": 22,
+            "CidrIpv4": "49.43.228.38/32",
+            "SecurityGroupRuleArn": "arn:aws:ec2:ap-south-1:061039801536:security-group-rule/sgr-0201f2883ece0b0cf"
+        }
+    ]
+}
+
+VERIFICATION COMMAND
+aws ec2 describe-security-groups --group-ids sg-00ebba671bb6e22fb --region ap-south-1 --output json
+
+VERIFICATION OUTPUT
+{
+    "SecurityGroups": [
+        {
+            "GroupId": "sg-00ebba671bb6e22fb",
+            "IpPermissionsEgress": [
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 80,
+                    "ToPort": 80,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "Description": "HTTP outbound for package mirrors",
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 53,
+                    "ToPort": 53,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "Description": "VPC DNS TCP",
+                            "CidrIp": "169.254.169.253/32"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "udp",
+                    "FromPort": 53,
+                    "ToPort": 53,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "Description": "VPC DNS UDP",
+                            "CidrIp": "169.254.169.253/32"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 443,
+                    "ToPort": 443,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "Description": "HTTPS outbound only",
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                }
+            ],
+            "VpcId": "vpc-026354c39444d6704",
+            "SecurityGroupArn": "arn:aws:ec2:ap-south-1:061039801536:security-group/sg-00ebba671bb6e22fb",
+            "OwnerId": "061039801536",
+            "GroupName": "argodreign-sg",
+            "Description": "ARGODREIGN IoT Engine",
+            "IpPermissions": [
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 8080,
+                    "ToPort": 8080,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "0.0.0.0/0"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                },
+                {
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "UserIdGroupPairs": [],
+                    "IpRanges": [
+                        {
+                            "CidrIp": "49.43.228.38/32"
+                        }
+                    ],
+                    "Ipv6Ranges": [],
+                    "PrefixListIds": []
+                }
+            ]
+        }
+    ]
+}
