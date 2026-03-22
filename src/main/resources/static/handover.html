@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARGUS — Shift Handover</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,sans-serif;background:#f8fafc;
+       color:#1e293b;min-height:100vh}
+  header{position:sticky;top:0;z-index:100;background:#1e293b;
+         padding:12px 24px;display:flex;align-items:center;
+         justify-content:space-between}
+  .logo{color:#fff;font-weight:700;font-size:18px}
+  nav{display:flex;gap:16px;flex-wrap:wrap}
+  nav a{color:#94a3b8;text-decoration:none;font-size:14px;margin-left:16px}
+  nav a.active{color:#fff}
+  .container{max-width:960px;margin:0 auto;padding:24px 16px}
+  h2{font-size:20px;font-weight:700;color:#1e293b;margin-bottom:16px}
+  .shift-selector{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+  .shift-btn{padding:8px 18px;border:2px solid #e2e8f0;border-radius:8px;
+             background:#fff;color:#475569;font-size:13px;font-weight:600;
+             cursor:pointer;transition:all .15s}
+  .shift-btn.active,.shift-btn:hover{border-color:#2563eb;
+             background:#2563eb;color:#fff}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+              gap:12px;margin-bottom:24px}
+  .stat-card{background:#fff;border-radius:12px;padding:16px;
+             box-shadow:0 1px 3px rgba(0,0,0,.07);text-align:center}
+  .stat-num{font-size:32px;font-weight:800;line-height:1}
+  .stat-lbl{font-size:12px;color:#64748b;margin-top:4px}
+  .stat-num.red{color:#dc2626}
+  .stat-num.green{color:#16a34a}
+  .stat-num.amber{color:#d97706}
+  .stat-num.blue{color:#2563eb}
+  .ai-card{background:#fff;border-radius:12px;padding:20px;
+           box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:24px}
+  .ai-label{display:inline-block;background:#fef3c7;color:#92400e;
+            font-size:11px;font-weight:700;padding:3px 10px;
+            border-radius:12px;margin-bottom:12px}
+  .ai-text{font-size:15px;line-height:1.6;color:#334155}
+  .confidence{display:inline-block;font-size:11px;font-weight:600;
+              padding:2px 8px;border-radius:10px;margin-top:10px}
+  .confidence.HIGH{background:#dcfce7;color:#166534}
+  .confidence.MEDIUM{background:#fef9c3;color:#854d0e}
+  .confidence.LOW{background:#fee2e2;color:#991b1b}
+  .machines-list{background:#fff;border-radius:12px;padding:20px;
+                 box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:24px}
+  .machine-item{padding:8px 0;border-bottom:1px solid #f1f5f9;
+                font-size:14px;color:#374151}
+  .machine-item:last-child{border-bottom:none}
+  .notes-section{background:#fff;border-radius:12px;padding:20px;
+                 box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:24px}
+  .note-item{padding:12px;background:#f8fafc;border-radius:8px;
+             margin-bottom:8px;border-left:3px solid #2563eb}
+  .note-meta{font-size:11px;color:#64748b;margin-bottom:4px}
+  .note-text{font-size:14px;color:#374151}
+  .note-form{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+  .note-input{padding:10px 14px;border:1px solid #e2e8f0;border-radius:8px;
+              font-size:14px;font-family:inherit;resize:vertical;min-height:80px}
+  .note-input:focus{outline:none;border-color:#2563eb}
+  .btn-save{background:#2563eb;color:#fff;border:none;border-radius:8px;
+            padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;
+            align-self:flex-start}
+  .btn-save:hover{background:#1d4ed8}
+  .btn-print{background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;
+             border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;
+             margin-left:auto}
+  .header-row{display:flex;align-items:center;margin-bottom:16px}
+  footer{text-align:center;padding:24px;color:#94a3b8;font-size:12px}
+  @media print{
+    header,nav,.shift-selector,.note-form,.btn-print{display:none!important}
+    body{background:#fff}
+    .stat-card,.ai-card,.machines-list,.notes-section{box-shadow:none;
+      border:1px solid #e2e8f0}
+  }
+  @media(max-width:600px){nav{display:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">⚡ ARGUS</span>
+  <nav>
+    <a href="/index.html">Overview</a>
+    <a href="/machine.html">Machine</a>
+    <a href="/safety.html">Safety</a>
+    <a href="/plant.html">Plant</a>
+    <a href="/compliance.html">Compliance</a>
+    <a href="/handover.html" class="active">Handover</a>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="header-row">
+    <h2>Shift Handover Log</h2>
+    <button class="btn-print" onclick="window.print()">🖨 Print</button>
+  </div>
+
+  <div class="shift-selector">
+    <span style="font-size:13px;color:#64748b;align-self:center;
+                 margin-right:4px;">Shift:</span>
+    <button class="shift-btn active" onclick="loadShift(8,this)">8 hr</button>
+    <button class="shift-btn" onclick="loadShift(12,this)">12 hr</button>
+    <button class="shift-btn" onclick="loadShift(24,this)">24 hr</button>
+  </div>
+
+  <div class="stats-grid" id="stats">
+    <div class="stat-card">
+      <div class="stat-num blue" id="stat-total">—</div>
+      <div class="stat-lbl">Total Alerts</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num red" id="stat-critical">—</div>
+      <div class="stat-lbl">CRITICAL</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num green" id="stat-acked">—</div>
+      <div class="stat-lbl">Acknowledged</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num amber" id="stat-open">—</div>
+      <div class="stat-lbl">Open / Pending</div>
+    </div>
+  </div>
+
+  <div class="ai-card">
+    <div class="ai-label">AI ADVISORY | Not a control action |
+      Rule engine has final authority</div>
+    <div class="ai-text" id="ai-note">Loading shift summary...</div>
+    <div>
+      <span class="confidence" id="ai-confidence">—</span>
+      <span style="font-size:11px;color:#94a3b8;margin-left:8px;"
+            id="ai-valid-for"></span>
+    </div>
+  </div>
+
+  <div class="machines-list">
+    <h2 style="font-size:16px;margin-bottom:12px;">Top Affected Machines</h2>
+    <div id="machines-list">
+      <div style="color:#94a3b8;font-size:13px;">Loading...</div>
+    </div>
+  </div>
+
+  <div class="notes-section">
+    <h2 style="font-size:16px;margin-bottom:12px;">Operator Notes</h2>
+    <div id="notes-list">
+      <div style="color:#94a3b8;font-size:13px;">Loading notes...</div>
+    </div>
+
+    <div class="note-form">
+      <label style="font-size:13px;font-weight:600;color:#374151;">
+        Add Handover Note
+      </label>
+      <textarea class="note-input" id="note-input"
+        placeholder="e.g. COMP-01 vibration elevated — maintenance scheduled 06:00.
+Cooling water temp high — ops team aware."></textarea>
+      <button class="btn-save" onclick="saveNote()">Save Note</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  ARGUS — Event-Driven Industrial IoT Monitoring Platform |
+  AI outputs are advisory only — not control instructions |
+  Rule engine has final authority on all CRITICAL alerts
+</footer>
+
+<script>
+  let currentShiftHours = 8;
+
+  async function loadShift(hours, btn) {
+    currentShiftHours = hours;
+    document.querySelectorAll('.shift-btn')
+            .forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    try {
+      const r = await fetch(`/api/v1/handover/summary?shiftHours=${hours}`);
+      const d = await r.json();
+
+      document.getElementById('stat-total').textContent    = d.totalAlerts ?? 0;
+      document.getElementById('stat-critical').textContent = d.criticalAlerts ?? 0;
+      document.getElementById('stat-acked').textContent    = d.acknowledgedAlerts ?? 0;
+      document.getElementById('stat-open').textContent     = d.openAlerts ?? 0;
+
+      const ai = d.aiHandoverNote || {};
+      document.getElementById('ai-note').textContent =
+        ai.analysis || 'No summary available.';
+      const confEl = document.getElementById('ai-confidence');
+      confEl.textContent = ai.confidence || '—';
+      confEl.className   = 'confidence ' + (ai.confidence || 'LOW');
+      document.getElementById('ai-valid-for').textContent =
+        ai.validFor ? 'Valid for: ' + ai.validFor : '';
+
+      const ml = document.getElementById('machines-list');
+      if (d.topMachineIssues && d.topMachineIssues.length > 0) {
+        ml.innerHTML = d.topMachineIssues
+          .map(m => `<div class="machine-item">⚙ ${m}</div>`)
+          .join('');
+      } else {
+        ml.innerHTML = '<div style="color:#16a34a;font-size:13px;">' +
+          '✓ No significant machine issues in this shift</div>';
+      }
+    } catch (e) {
+      document.getElementById('ai-note').textContent =
+        'Unable to load shift summary — check platform status.';
+    }
+  }
+
+  async function loadNotes() {
+    const today = new Date().toISOString().split('T')[0];
+    try {
+      const r = await fetch(`/api/v1/handover/notes?date=${today}`);
+      const notes = await r.json();
+      const nl = document.getElementById('notes-list');
+      if (!notes || notes.length === 0) {
+        nl.innerHTML = '<div style="color:#94a3b8;font-size:13px;">' +
+          'No notes for today yet.</div>';
+        return;
+      }
+      nl.innerHTML = notes.map(raw => {
+        try {
+          const n = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          const ts = n.timestamp
+            ? new Date(n.timestamp).toLocaleTimeString()
+            : '';
+          return `<div class="note-item">
+            <div class="note-meta">${n.operatorId || 'Unknown'} — ${ts}</div>
+            <div class="note-text">${n.note || ''}</div>
+          </div>`;
+        } catch { return ''; }
+      }).join('');
+    } catch {
+      document.getElementById('notes-list').innerHTML =
+        '<div style="color:#94a3b8;font-size:13px;">' +
+        'Could not load notes.</div>';
+    }
+  }
+
+  async function saveNote() {
+    const noteEl = document.getElementById('note-input');
+    const note   = noteEl.value.trim();
+    if (!note) { alert('Please enter a note before saving.'); return; }
+
+    const btn = document.querySelector('.btn-save');
+    btn.disabled    = true;
+    btn.textContent = 'Saving...';
+
+    try {
+      const r = await fetch('/api/v1/handover/note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operatorId: 'OP-01', note })
+      });
+      if (r.ok) {
+        noteEl.value    = '';
+        btn.textContent = '✓ Saved';
+        setTimeout(() => {
+          btn.textContent = 'Save Note';
+          btn.disabled    = false;
+        }, 2000);
+        await loadNotes();
+      } else {
+        throw new Error('Save failed');
+      }
+    } catch {
+      alert('Could not save note — check platform status.');
+      btn.textContent = 'Save Note';
+      btn.disabled    = false;
+    }
+  }
+
+  // Initial load
+  loadShift(8, document.querySelector('.shift-btn.active'));
+  loadNotes();
+</script>
+</body>
+</html>
