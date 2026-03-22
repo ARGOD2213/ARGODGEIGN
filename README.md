@@ -5,7 +5,7 @@
 - Sprint 1: `CLOSED`
 - Sprint 2: `CLOSED` (Day 1 to Day 14 evidence committed)
 - Sprint 3: `CLOSED` (RB-09, RB-15, all dashboards fully wired)
-- Sprint 4: `PENDING`
+- Sprint 4: `IN PROGRESS` (Track 1 — phone control plane done)
 - Active dashboards:
   - `/index.html` (overview)
   - `/machine.html` (machine-wise)

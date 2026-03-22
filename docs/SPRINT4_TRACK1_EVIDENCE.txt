@@ -1,0 +1,19 @@
+Tasks completed: 0 (.vscode gitignore), 1 (Lambda), 2 (deploy script),
+                 3 (ops.html), 4 (Spring Security), 5 (port script)
+mvn package: PASS
+Lambda file: lambda/ops_control/handler.py
+Auth: SSM parameter /argus/ops/control_password (created manually, never in repo)
+Dashboard auth: HTTP Basic via SecurityConfig.java
+ops.html single source: src/main/resources/static/ops.html
+S3 ops-ui bucket: argus-ops-ui
+Port 8080: open after running scripts/open-dashboard-port.sh
+Commit chain:
+  9f3de02 chore: ignore .vscode editor artifacts
+  9dd6aef feat(ops): ops_control Lambda with SSM password auth — never exposes key in source
+  5f4cef0 feat(ops): deploy-ops-control.sh — Lambda + API Gateway + S3 ops bucket setup
+  de49b8e feat(ops): ops.html — mobile control plane, runtime password, single source of truth
+  74db454 feat(security): Spring Security HTTP Basic auth for all dashboards and APIs
+  a1843c9 feat(ops): open-dashboard-port.sh — run after auth confirmed
+Notes:
+  aws s3 cp src/main/resources/static/ops.html s3://argus-ops-ui/ops.html --content-type text/html --region ap-south-1
+  was attempted before bucket creation and failed with NoSuchBucket; rerun after scripts/deploy-ops-control.sh creates argus-ops-ui.
