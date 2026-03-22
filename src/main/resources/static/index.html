@@ -1,184 +1,470 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ARGODREIGN IoT Command Center</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARGUS Overview Dashboard</title>
   <style>
     :root {
-      --bg: #f3f6f9;
-      --ink: #102a43;
+      --bg: #f8fafc;
       --card: #ffffff;
-      --line: #d9e2ec;
-      --good: #2f855a;
-      --warn: #d69e2e;
-      --crit: #c53030;
-      --accent: #0b7285;
+      --line: #dbe4ee;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --critical: #dc2626;
+      --warning: #d97706;
+      --normal: #16a34a;
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      color: var(--ink);
-      background: radial-gradient(circle at top right, #d4f1f4 0%, var(--bg) 55%);
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
     }
-    .wrap {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    .header {
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #1e293b;
+      padding: 12px 24px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
+      gap: 16px;
       flex-wrap: wrap;
     }
-    h1 {
+
+    header span {
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    nav {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    nav a.active {
+      color: #ffffff;
+    }
+
+    .page {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
       margin: 0;
-      font-size: 1.6rem;
-      letter-spacing: 0.2px;
+      font-size: 28px;
     }
-    .sub { color: #486581; }
-    .btn {
-      border: 0;
-      background: var(--accent);
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 600;
+
+    .hero p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
     }
+
+    .stamp {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
     .grid {
-      margin-top: 18px;
       display: grid;
-      grid-template-columns: repeat(4, minmax(120px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
     }
+
     .card {
       background: var(--card);
       border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px;
-      box-shadow: 0 2px 10px rgba(16, 42, 67, 0.05);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
     }
-    .label { color: #627d98; font-size: 0.86rem; }
-    .value { font-size: 1.55rem; font-weight: 700; margin-top: 6px; }
-    .good { color: var(--good); }
-    .warn { color: var(--warn); }
-    .crit { color: var(--crit); }
-    .sections {
-      margin-top: 16px;
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+
+    .sub {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .banner-grid,
+    .kpi-grid,
+    .nav-grid {
       display: grid;
-      grid-template-columns: 1.4fr 1fr;
       gap: 12px;
     }
-    .table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.9rem;
+
+    .banner-grid,
+    .kpi-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
-    .table th, .table td {
-      padding: 8px;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
+
+    .nav-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
     }
-    .pill {
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: #f8fafc;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metric .value {
+      margin-top: 6px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       border-radius: 999px;
-      padding: 3px 8px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      display: inline-block;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 10px;
     }
-    .pill.NORMAL { background: #def7ec; color: #03543f; }
-    .pill.WARNING { background: #fff8db; color: #8d6e00; }
-    .pill.CRITICAL { background: #ffe3e3; color: #9b2c2c; }
-    .mono { font-family: Consolas, Menlo, monospace; }
-    @media (max-width: 900px) {
-      .grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
-      .sections { grid-template-columns: 1fr; }
+
+    .green { background: #dcfce7; color: var(--normal); }
+    .amber { background: #fef3c7; color: var(--warning); }
+    .red { background: #fee2e2; color: var(--critical); }
+    .blue { background: #dbeafe; color: var(--accent); }
+
+    .feed {
+      display: grid;
+      gap: 12px;
+    }
+
+    .feed-item,
+    .nav-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: #f8fafc;
+    }
+
+    .feed-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .nav-card {
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .nav-card:hover {
+      transform: translateY(-1px);
+      border-color: #bfdbfe;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1080px) {
+      .banner-grid,
+      .kpi-grid,
+      .nav-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      .page {
+        padding: 16px;
+      }
+
+      .grid,
+      .banner-grid,
+      .kpi-grid,
+      .nav-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="header">
+  <header>
+    <span>ARGUS - Industrial IoT Platform</span>
+    <nav>
+      <a href="/index.html" class="active">Overview</a>
+      <a href="/machine.html">Machine</a>
+      <a href="/safety.html">Safety</a>
+      <a href="/plant.html">Plant</a>
+      <a href="/compliance.html">Compliance</a>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="hero">
       <div>
-        <h1>ARGODREIGN IoT Command Center</h1>
-        <div class="sub" id="lastUpdated">Loading...</div>
+        <h1>ARGUS Overview Dashboard</h1>
+        <p>Platform state, live plant KPIs, recent alerts, and direct links to all operational views.</p>
       </div>
-      <button class="btn" onclick="refreshNow()">Refresh</button>
-    </div>
+      <div class="stamp" id="lastUpdated">Loading overview telemetry...</div>
+    </section>
 
-    <div class="grid">
-      <div class="card"><div class="label">Live Events</div><div class="value" id="liveCount">0</div></div>
-      <div class="card"><div class="label">Critical</div><div class="value crit" id="criticalCount">0</div></div>
-      <div class="card"><div class="label">Warning</div><div class="value warn" id="warningCount">0</div></div>
-      <div class="card"><div class="label">Avg AI Risk</div><div class="value" id="avgRisk">0</div></div>
-    </div>
+    <section class="grid">
+      <div class="card full">
+        <h2>Platform Status</h2>
+        <p class="sub">Live status from <code>/api/platform/status</code></p>
+        <div class="banner-grid" id="platformStatus">Loading platform status...</div>
+      </div>
 
-    <div class="sections">
-      <div class="card">
-        <h3>Latest Events</h3>
-        <table class="table" id="eventsTable">
-          <thead>
-            <tr><th>Time</th><th>Device</th><th>Sensor</th><th>Value</th><th>Status</th><th>Risk</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+      <div class="card full">
+        <h2>Summary Cards</h2>
+        <p class="sub">Critical alerts, plant OEE, WBGT, and overall compliance</p>
+        <div class="kpi-grid" id="summaryCards">Loading KPI summary...</div>
       </div>
+
       <div class="card">
-        <h3>Top Sensors (Live)</h3>
-        <table class="table" id="sensorTable">
-          <thead><tr><th>Sensor</th><th>Events</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <h2>Recent Alerts Feed</h2>
+        <p class="sub">Latest 10 alerts across all live machines</p>
+        <div id="alertsFeed" class="feed">Loading recent alerts...</div>
       </div>
-    </div>
-  </div>
+
+      <div class="card">
+        <h2>Quick Navigation</h2>
+        <p class="sub">Direct links to dashboard-specific drill-downs</p>
+        <div id="navCards" class="nav-grid">Loading dashboard summaries...</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    ARGUS - Event-Driven Industrial IoT Monitoring Platform |
+    AI outputs are advisory only - not control instructions |
+    Rule engine has final authority on all CRITICAL alerts
+  </footer>
 
   <script>
-    async function loadOverview() {
-      const res = await fetch('/api/v1/dashboard/overview');
-      if (!res.ok) throw new Error('Failed to load dashboard overview');
-      const data = await res.json();
-
-      document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date(data.lastUpdated).toLocaleString();
-      document.getElementById('liveCount').textContent = data.liveEventCount ?? 0;
-      document.getElementById('criticalCount').textContent = data.criticalCount ?? 0;
-      document.getElementById('warningCount').textContent = data.warningCount ?? 0;
-      document.getElementById('avgRisk').textContent = data.averageAiRiskScore ?? 0;
-
-      const eventsBody = document.querySelector('#eventsTable tbody');
-      eventsBody.innerHTML = '';
-      (data.latestEvents || []).forEach(e => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="mono">${(e.timestamp || '').replace('T', ' ').replace('Z', '')}</td>
-          <td>${e.deviceId || '-'}</td>
-          <td>${e.sensorType || '-'}</td>
-          <td>${e.value ?? '-'} ${e.unit || ''}</td>
-          <td><span class="pill ${e.status || 'NORMAL'}">${e.status || 'NORMAL'}</span></td>
-          <td>${e.aiRiskScore ?? 'N/A'}</td>`;
-        eventsBody.appendChild(tr);
-      });
-
-      const sensorBody = document.querySelector('#sensorTable tbody');
-      sensorBody.innerHTML = '';
-      (data.topSensors || []).forEach(s => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${s.sensorType}</td><td>${s.count}</td>`;
-        sensorBody.appendChild(tr);
-      });
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
     }
 
-    async function refreshNow() {
-      try { await loadOverview(); }
-      catch (e) { document.getElementById('lastUpdated').textContent = 'Dashboard error: ' + e.message; }
+    function badgeClass(status) {
+      const value = String(status || "").toUpperCase();
+      if (["CRITICAL", "BAD", "UNAVAILABLE", "ERROR"].includes(value)) return "badge red";
+      if (["WARNING", "NOT_CONFIGURED", "UNKNOWN_FROM_APP", "LAMBDA"].includes(value)) return "badge amber";
+      return "badge green";
     }
 
-    refreshNow();
-    setInterval(refreshNow, 10000);
+    async function fetchJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(url + " -> " + response.status);
+      }
+      return response.json();
+    }
+
+    function timeAgo(timestamp) {
+      if (!timestamp) return "-";
+      const diffMs = Date.now() - new Date(timestamp).getTime();
+      const minutes = Math.max(0, Math.floor(diffMs / 60000));
+      if (minutes < 1) return "just now";
+      if (minutes < 60) return minutes + " min ago";
+      const hours = Math.floor(minutes / 60);
+      return hours + " hr ago";
+    }
+
+    function renderPlatformStatus(platform) {
+      const cards = [
+        { label: "Platform", value: platform.platform, status: platform.platform },
+        { label: "Rule Engine", value: platform.ruleEngine, status: platform.ruleEngine === "LAMBDA" ? "RUNNING" : platform.ruleEngine },
+        { label: "LLM", value: platform.llm, status: platform.llm },
+        { label: "EC2", value: platform.ec2State, status: platform.ec2State }
+      ];
+
+      document.getElementById("platformStatus").innerHTML = cards.map(card => `
+        <div class="metric">
+          <div class="label">${escapeHtml(card.label)}</div>
+          <div class="value">${escapeHtml(card.value || "-")}</div>
+          <div class="${badgeClass(card.status)}">${escapeHtml(card.status || "-")}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderSummaryCards(metrics) {
+      document.getElementById("summaryCards").innerHTML = `
+        <div class="metric">
+          <div class="label">Active CRITICAL Alerts</div>
+          <div class="value">${metrics.criticalAlerts}</div>
+        </div>
+        <div class="metric">
+          <div class="label">Plant OEE Average</div>
+          <div class="value">${metrics.plantOee.toFixed(1)}%</div>
+        </div>
+        <div class="metric">
+          <div class="label">WBGT Current</div>
+          <div class="value">${metrics.wbgt.toFixed(1)}</div>
+        </div>
+        <div class="metric">
+          <div class="label">Overall Compliance</div>
+          <div class="value">${metrics.compliance.toFixed(1)}%</div>
+        </div>
+      `;
+    }
+
+    function renderAlertsFeed(alerts) {
+      const feed = document.getElementById("alertsFeed");
+      if (!alerts.length) {
+        feed.innerHTML = `<div class="empty">No live alerts available.</div>`;
+        return;
+      }
+
+      feed.innerHTML = alerts.map(alert => `
+        <div class="feed-item">
+          <div class="feed-head">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <span class="${badgeClass(alert.status)}">${escapeHtml(alert.status)}</span>
+              <strong>${escapeHtml(alert.machineId)}</strong>
+            </div>
+            <span style="color:#64748b;font-size:13px;">${escapeHtml(timeAgo(alert.timestamp))}</span>
+          </div>
+          <div style="margin-top:10px;font-size:14px;">
+            ${escapeHtml(alert.sensorType || "UNKNOWN")} | ${Number(alert.value || 0).toFixed(2)}
+          </div>
+          <div style="margin-top:6px;color:#64748b;font-size:13px;">${escapeHtml(new Date(alert.timestamp).toLocaleString("en-IN"))}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderNavCards(data) {
+      const cards = [
+        { href: "/machine.html", title: "Machine Intelligence", summary: "Live machines: " + data.machineCount + " | Critical: " + data.criticalAlerts },
+        { href: "/safety.html", title: "Human Safety", summary: "WBGT " + data.wbgt.toFixed(1) + " | Max NH3 " + data.maxNh3.toFixed(1) + " ppm" },
+        { href: "/plant.html", title: "Plant-Wide", summary: "Plant OEE " + data.plantOee.toFixed(1) + "% | Zones with alerts: " + data.zonesWithAlerts },
+        { href: "/compliance.html", title: "Compliance", summary: "OCS " + data.compliance.toFixed(1) + "% | Demo period " + data.compliancePeriod },
+        { href: "#", title: "Future", summary: "PTW and statutory automation planned for Sprint 4" }
+      ];
+
+      document.getElementById("navCards").innerHTML = cards.map(card => `
+        <a class="nav-card" href="${card.href}">
+          <div style="font-weight:800;font-size:16px;">${escapeHtml(card.title)}</div>
+          <div style="margin-top:8px;color:#64748b;font-size:14px;line-height:1.5;">${escapeHtml(card.summary)}</div>
+        </a>
+      `).join("");
+    }
+
+    async function refreshOverview() {
+      try {
+        const [platform, machines, weather, compliance, nh3Zones] = await Promise.all([
+          fetchJson("/api/platform/status"),
+          fetchJson("/api/machines"),
+          fetchJson("/api/v1/weather/current"),
+          fetchJson("/api/v1/compliance/ocs-score"),
+          fetchJson("/api/v1/safety/nh3-zones")
+        ]);
+
+        renderPlatformStatus(platform);
+
+        const alertGroups = await Promise.all(machines.map(machine =>
+          fetchJson("/api/machines/" + encodeURIComponent(machine.machineId) + "/alerts?limit=3")
+            .then(alerts => ({ machine, alerts }))
+        ));
+
+        const flattenedAlerts = alertGroups
+          .flatMap(entry => entry.alerts)
+          .sort((a, b) => String(b.timestamp || "").localeCompare(String(a.timestamp || "")))
+          .slice(0, 10);
+
+        const criticalAlerts = flattenedAlerts.filter(alert => String(alert.status || "").toUpperCase() === "CRITICAL").length;
+
+        const oeeRows = await Promise.all(machines.map(machine =>
+          fetchJson("/api/kpi/oee/" + encodeURIComponent(machine.machineId))
+            .then(oee => Number(oee.oeePercent || 0))
+        ));
+        const plantOee = oeeRows.length ? oeeRows.reduce((sum, value) => sum + value, 0) / oeeRows.length : 0;
+
+        renderSummaryCards({
+          criticalAlerts,
+          plantOee,
+          wbgt: Number(weather.wbgt || 0),
+          compliance: Number(compliance.overallComplianceScore || 0)
+        });
+
+        renderAlertsFeed(flattenedAlerts);
+
+        const zonesWithAlerts = alertGroups.filter(entry => entry.alerts.length > 0).length;
+        const maxNh3 = nh3Zones.reduce((max, zone) => Math.max(max, Number(zone.ppm || 0)), 0);
+        renderNavCards({
+          machineCount: machines.length,
+          criticalAlerts,
+          wbgt: Number(weather.wbgt || 0),
+          maxNh3,
+          plantOee,
+          zonesWithAlerts,
+          compliance: Number(compliance.overallComplianceScore || 0),
+          compliancePeriod: String(compliance.period || "last_30_days").replaceAll("_", " ")
+        });
+
+        document.getElementById("lastUpdated").textContent = "Last updated: " + new Date().toLocaleString("en-IN");
+      } catch (error) {
+        document.getElementById("lastUpdated").textContent = "Overview dashboard unavailable: " + error.message;
+      }
+    }
+
+    refreshOverview();
+    setInterval(refreshOverview, 30000);
   </script>
 </body>
 </html>
