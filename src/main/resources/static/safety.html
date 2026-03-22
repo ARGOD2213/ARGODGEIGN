@@ -1,883 +1,625 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ARGODREIGN — Human Safety Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARGUS Safety Dashboard</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0d1117;
-      color: #e6edf3;
-      min-height: 100vh;
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --line: #dbe4ee;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --critical: #dc2626;
+      --warning: #d97706;
+      --normal: #16a34a;
+      --header: #1e293b;
     }
 
-    /* ── TOP BAR ── */
-    .topbar {
-      background: #161b22;
-      border-bottom: 1px solid #30363d;
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--header);
       padding: 12px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-    }
-    .topbar h1 { font-size:16px; font-weight:700; color:#58a6ff; letter-spacing:1px; }
-    .topbar nav a {
-      color:#8b949e; text-decoration:none;
-      font-size:13px; margin-left:20px;
-    }
-    .topbar nav a:hover { color:#e6edf3; }
-    .topbar nav a.active { color:#58a6ff; font-weight:600; }
-
-    /* ── ADVISORY BANNER ── */
-    .advisory-banner {
-      background:#1a0a00;
-      border-bottom:2px solid #d29922;
-      padding:8px 24px;
-      font-size:12px; font-weight:700;
-      color:#e3b341; text-align:center;
+      gap: 16px;
+      flex-wrap: wrap;
     }
 
-    /* ── GRID ── */
-    .dashboard {
-      padding:20px 24px;
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto auto;
-      gap:20px;
-    }
-    @media(max-width:900px){
-      .dashboard { grid-template-columns:1fr; }
-    }
-    .full-width { grid-column: 1 / -1; }
-    .two-col { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media(max-width:900px){
-      .two-col { grid-template-columns: 1fr; }
+    header span {
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
     }
 
-    /* ── CARDS ── */
+    nav {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    nav a.active {
+      color: #ffffff;
+    }
+
+    .page {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .hero p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .stamp {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .alert-banner {
+      display: none;
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: var(--critical);
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+
     .card {
-      background:#161b22;
-      border:1px solid #30363d;
-      border-radius:10px;
-      padding:18px 20px;
-    }
-    .card h3 {
-      font-size:12px;
-      text-transform:uppercase;
-      letter-spacing:1px;
-      color:#8b949e;
-      margin-bottom:16px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
     }
 
-    /* ── WBGT ── */
-    .wbgt-main {
-      display:flex;
-      align-items:center;
-      gap:24px;
-      margin-bottom:16px;
+    .card.full {
+      grid-column: 1 / -1;
     }
+
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+
+    .card .sub {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .wbgt-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
     .wbgt-value {
-      font-size:64px;
-      font-weight:700;
-      line-height:1;
-    }
-    .wbgt-meta { flex:1; }
-    .wbgt-label {
-      font-size:14px;
-      font-weight:700;
-      margin-bottom:4px;
-    }
-    .wbgt-sub { font-size:12px; color:#8b949e; line-height:1.6; }
-    .wbgt-bands { display:flex; flex-direction:column; gap:4px; }
-    .wbgt-band {
-      display:flex;
-      align-items:center;
-      gap:8px;
-      font-size:12px;
-      padding:4px 8px;
-      border-radius:4px;
-    }
-    .wbgt-band.active { font-weight:700; border:1px solid currentColor; }
-    .band-normal   { color:#3fb950; }
-    .band-caution  { color:#58a6ff; }
-    .band-warning  { color:#e3b341; }
-    .band-restrict { color:#f0883e; }
-    .band-stop     { color:#f85149; }
-    .work-rest {
-      margin-top:14px;
-      padding:10px 14px;
-      border-radius:6px;
-      font-size:13px;
-      font-weight:600;
+      font-size: 54px;
+      font-weight: 800;
+      line-height: 1;
     }
 
-    /* ── NH3 EXPOSURE ── */
-    .zone-row {
-      display:flex;
-      align-items:center;
-      gap:12px;
-      margin-bottom:12px;
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
     }
-    .zone-name {
-      width:100px;
-      font-size:13px;
-      font-weight:600;
-      flex-shrink:0;
+
+    .badge-green {
+      background: #dcfce7;
+      color: var(--normal);
     }
+
+    .badge-amber {
+      background: #fef3c7;
+      color: var(--warning);
+    }
+
+    .badge-red {
+      background: #fee2e2;
+      color: var(--critical);
+    }
+
+    .meta-list {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .metric .label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .metric .value {
+      margin-top: 6px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .zone-list,
+    .table {
+      display: grid;
+      gap: 12px;
+    }
+
+    .zone-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: #f8fafc;
+    }
+
+    .zone-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .zone-title {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
     .bar-track {
-      flex:1;
-      height:20px;
-      background:#21262d;
-      border-radius:4px;
-      overflow:hidden;
-      position:relative;
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
     }
+
     .bar-fill {
-      height:100%;
-      border-radius:4px;
-      transition:width 0.5s ease;
-    }
-    .bar-label {
-      position:absolute;
-      right:6px; top:50%;
-      transform:translateY(-50%);
-      font-size:11px;
-      font-weight:700;
-      color:#e6edf3;
-    }
-    .tlv-marker {
-      position:absolute;
-      top:0; height:100%;
-      width:2px;
-      background:#f85149;
-    }
-    .zone-sev {
-      width:60px;
-      text-align:right;
-      font-size:11px;
-      font-weight:700;
-      flex-shrink:0;
-    }
-    .dispersion-meta {
-      font-size:11px;
-      color:#8b949e;
-      margin:-8px 0 10px 112px;
-      line-height:1.6;
-    }
-    .dispersion-arrow {
-      display:inline-block;
-      min-width:26px;
-      font-size:14px;
-      font-weight:700;
-      color:#58a6ff;
-    }
-    .evac-zone {
-      font-weight:700;
-    }
-    .evac-zone.alert {
-      color:#f85149;
+      height: 100%;
+      border-radius: 999px;
     }
 
-    /* ── FATIGUE ── */
-    .fatigue-grid {
-      display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px,1fr));
-      gap:12px;
+    .zone-meta {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
     }
-    .fatigue-card {
-      background:#21262d;
-      border-radius:8px;
-      padding:12px;
-      text-align:center;
+
+    .dispersion {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: var(--accent);
     }
+
+    .evacuation {
+      font-weight: 700;
+    }
+
+    .evacuation.red {
+      color: var(--critical);
+    }
+
+    .gauge-track {
+      width: 100%;
+      height: 18px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+      margin: 14px 0;
+    }
+
+    .gauge-fill {
+      height: 100%;
+      border-radius: 999px;
+    }
+
     .fatigue-score {
-      font-size:36px;
-      font-weight:700;
-      line-height:1;
-    }
-    .fatigue-name {
-      font-size:12px;
-      color:#8b949e;
-      margin-top:4px;
-    }
-    .fatigue-status {
-      font-size:11px;
-      font-weight:700;
-      margin-top:6px;
-      padding:2px 6px;
-      border-radius:4px;
-    }
-    .twa-track {
-      width:100%;
-      height:8px;
-      background:#30363d;
-      border-radius:999px;
-      overflow:hidden;
-      margin-top:10px;
-    }
-    .twa-fill {
-      height:100%;
-      border-radius:999px;
-    }
-    .twa-meta {
-      margin-top:8px;
-      font-size:11px;
-      color:#8b949e;
-      line-height:1.5;
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 10px;
     }
 
-    /* ── PTW TABLE ── */
-    .ptw-table {
-      width:100%;
-      border-collapse:collapse;
-      font-size:13px;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
     }
-    .ptw-table th {
-      text-align:left;
-      padding:8px 10px;
-      border-bottom:1px solid #30363d;
-      font-size:11px;
-      color:#8b949e;
-      text-transform:uppercase;
-    }
-    .ptw-table td {
-      padding:8px 10px;
-      border-bottom:1px solid #21262d;
-    }
-    .ptw-table tr:hover td { background:#21262d; }
-    .ptw-badge {
-      font-size:11px;
-      font-weight:700;
-      padding:2px 8px;
-      border-radius:4px;
-    }
-    .ptw-ACTIVE    { background:#0d4429; color:#3fb950; }
-    .ptw-ISSUED    { background:#0c2d6b; color:#58a6ff; }
-    .ptw-SUSPENDED { background:#2d2a00; color:#e3b341; }
-    .ptw-CLOSED    { background:#21262d; color:#8b949e; }
-    .ptw-NONE      { background:#4d0000; color:#f85149; }
 
-    /* ── STATUS CHIPS ── */
-    .chip {
-      display:inline-block;
-      padding:3px 10px;
-      border-radius:12px;
-      font-size:11px;
-      font-weight:700;
+    th, td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
     }
-    .chip-green  { background:#0d4429; color:#3fb950; border:1px solid #238636; }
-    .chip-yellow { background:#2d2a00; color:#e3b341; border:1px solid #9e6a03; }
-    .chip-red    { background:#4d0000; color:#f85149; border:1px solid #da3633; }
-    .chip-blue   { background:#0c2d6b; color:#58a6ff; border:1px solid #1f6feb; }
 
-    .loading { color:#8b949e; font-size:13px; padding:12px 0; }
-    .chart-wrap { height: 240px; }
-    .last-updated {
-      font-size:11px; color:#8b949e;
-      text-align:right; margin-top:8px;
+    tbody tr.good-row {
+      background: #f0fdf4;
+    }
+
+    tbody tr.suspect-row {
+      background: #fffbeb;
+    }
+
+    tbody tr.bad-row,
+    tbody tr.due-row {
+      background: #fef2f2;
+    }
+
+    .ptw-note,
+    .small-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 12px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    @media (max-width: 960px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .meta-list {
+        grid-template-columns: 1fr;
+      }
+
+      .page {
+        padding: 16px;
+      }
     }
   </style>
 </head>
 <body>
+  <header>
+    <span>ARGUS - Industrial IoT Platform</span>
+    <nav>
+      <a href="/index.html">Overview</a>
+      <a href="/machine.html">Machine</a>
+      <a href="/safety.html" class="active">Safety</a>
+      <a href="/plant.html">Plant</a>
+      <a href="/compliance.html">Compliance</a>
+    </nav>
+  </header>
 
-<!-- TOP BAR -->
-<div class="topbar">
-  <h1>🛡 ARGODREIGN — Human Safety Dashboard</h1>
-  <nav>
-    <a href="/index.html">Overview</a>
-    <a href="/machine.html">Machines</a>
-    <a href="/safety.html" class="active">Safety</a>
-    <a href="/plant.html">Plant</a>
-    <a href="/compliance.html">Compliance</a>
-  </nav>
-</div>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <h1>Human Safety Dashboard</h1>
+        <p>Live WBGT, NH3 dispersion, fatigue score, and sensor health.</p>
+      </div>
+      <div class="stamp" id="lastUpdated">Refreshing live safety data...</div>
+    </section>
 
-<!-- ADVISORY BANNER -->
-<div class="advisory-banner">
-  ⚠ HUMAN SAFETY ADVISORY — All risk scores are advisory only.
-  Worker removal from duty requires Supervisor confirmation.
-  Data is advisory — not a substitute for direct medical assessment.
-</div>
+    <div class="alert-banner" id="nh3AlertBanner"></div>
 
-<!-- DASHBOARD GRID -->
-<div class="dashboard">
+    <section class="grid">
+      <article class="card">
+        <h2>Section 1 - WBGT</h2>
+        <p class="sub">Live feed from <code>/api/v1/weather/current</code></p>
+        <div id="wbgtSection">Loading WBGT...</div>
+      </article>
 
-  <!-- SECTION 1: WBGT HEAT STRESS -->
-  <div class="card">
-    <h3>🌡 Heat Stress Index (WBGT) — ISO 7933</h3>
-    <div id="wbgt-section">
-      <div class="loading">Loading weather data…</div>
-    </div>
-    <div class="last-updated" id="wbgt-updated"></div>
-  </div>
+      <article class="card">
+        <h2>Section 2 - NH3 Dispersion</h2>
+        <p class="sub">Live feed from <code>/api/v1/safety/nh3-zones</code></p>
+        <div id="nh3Section" class="zone-list">Loading NH3 zone data...</div>
+      </article>
 
-  <!-- SECTION 2: NH3 EXPOSURE BY ZONE -->
-  <div class="card">
-    <h3>☣ NH3 Zone Exposure — ACGIH TLV-TWA 25 ppm</h3>
-    <div id="nh3-section">
-      <div class="loading">Loading zone data…</div>
-    </div>
-    <div class="last-updated" id="nh3-updated"></div>
-  </div>
+      <article class="card">
+        <h2>Section 3 - Worker Fatigue</h2>
+        <p class="sub">Live feed from <code>/api/v1/safety/fatigue-score</code></p>
+        <div id="fatigueSection">Loading fatigue score...</div>
+      </article>
 
-  <!-- SECTION 3: WORKER FATIGUE INDEX -->
-  <div class="card">
-    <h3>😴 Worker Fatigue Index — FAID-lite Model</h3>
-    <div id="fatigue-section">
-      <div class="loading">Loading shift data…</div>
-    </div>
-    <div style="margin-top:12px;font-size:11px;color:#8b949e">
-      Score &gt;80: Restricted duties (Supervisor review) |
-      Score &gt;100: Mandatory rest
-    </div>
-  </div>
+      <article class="card">
+        <h2>Section 4 - Sensor Health</h2>
+        <p class="sub">Live feed from <code>/api/v1/sensor/health/COMP-01</code></p>
+        <div id="sensorHealthSection">Loading sensor health...</div>
+      </article>
 
-  <!-- SECTION 4: PTW STATUS -->
-  <div class="card">
-    <h3>📋 Permit-to-Work Status — OISD-STD-105</h3>
-    <div id="ptw-section">
-      <div class="loading">Loading PTW data…</div>
-    </div>
-  </div>
+      <article class="card full">
+        <h2>Section 5 - PTW Status</h2>
+        <p class="sub">Static demo data - Sprint 4 integration</p>
+        <div id="ptwSection"></div>
+      </article>
+    </section>
+  </main>
 
-  <!-- SECTION 5: SAFETY ANALYTICS -->
-  <div class="card full-width">
-    <h3>📉 Safety Analytics (Interactive)</h3>
-    <div class="two-col">
-      <div class="chart-wrap"><canvas id="riskMixChart"></canvas></div>
-      <div class="chart-wrap"><canvas id="zoneShareChart"></canvas></div>
-    </div>
-    <div style="margin-top:10px;font-size:11px;color:#8b949e">
-      Left: Risk source split (NH3 breaches / Fatigue high / PTW missing). Right: NH3 share by zone.
-    </div>
-  </div>
+  <footer>
+    ARGUS - Event-Driven Industrial IoT Monitoring Platform |
+    AI outputs are advisory only - not control instructions |
+    Rule engine has final authority on all CRITICAL alerts
+  </footer>
 
-  <!-- SECTION 5: OVERALL SAFETY SCORE -->
-  <div class="card full-width">
-    <h3>📊 Shift Safety Summary</h3>
-    <div id="summary-section">
-      <div class="loading">Computing safety summary…</div>
-    </div>
-  </div>
+  <script>
+    const STATUS_CLASS = {
+      NORMAL: "badge-green",
+      CAUTION: "badge-green",
+      "75_25": "badge-amber",
+      "50_50": "badge-amber",
+      RESTRICTED: "badge-amber",
+      "25_75": "badge-red",
+      STOP_OUTDOOR_WORK: "badge-red",
+      WARNING: "badge-amber",
+      CRITICAL: "badge-red",
+      GOOD: "badge-green",
+      SUSPECT: "badge-amber",
+      BAD: "badge-red",
+      CALIBRATION_DUE: "badge-red"
+    };
 
-</div>
-
-<script>
-// ═══════════════════════════════════════════
-// WBGT COMPUTATION
-// ISO 7933 outdoor approximation from weather
-// ═══════════════════════════════════════════
-let riskMixChart = null;
-let zoneShareChart = null;
-
-function computeWBGT(tempC, humidityPct, isDay) {
-  // Wet bulb approximation (Stull formula)
-  const Tw = tempC * Math.atan(0.151977 * Math.pow(humidityPct + 8.313659, 0.5))
-    + Math.atan(tempC + humidityPct)
-    - Math.atan(humidityPct - 1.676331)
-    + 0.00391838 * Math.pow(humidityPct, 1.5) * Math.atan(0.023101 * humidityPct)
-    - 4.686035;
-  // Globe temp approximation (solar loading)
-  const Tg = isDay ? tempC + 4 : tempC + 1;
-  // WBGT outdoor
-  return parseFloat((0.7 * Tw + 0.2 * Tg + 0.1 * tempC).toFixed(1));
-}
-
-function getWBGTBand(wbgt) {
-  if (wbgt < 26)   return { label:'NORMAL',     color:'#3fb950', cls:'band-normal',
-    workRest:'No restriction. Normal duty.', bg:'#0d4429' };
-  if (wbgt < 28)   return { label:'CAUTION',    color:'#58a6ff', cls:'band-caution',
-    workRest:'Monitor workers. Increase water provision.', bg:'#0c2d6b' };
-  if (wbgt < 30)   return { label:'WARNING',    color:'#e3b341', cls:'band-warning',
-    workRest:'75% work / 25% rest. Water every 20 min.', bg:'#2d2a00' };
-  if (wbgt < 32)   return { label:'RESTRICTED', color:'#f0883e', cls:'band-restrict',
-    workRest:'50% work / 50% rest. Light duties only.', bg:'#3d1a00' };
-  if (wbgt < 35)   return { label:'HIGH RISK',  color:'#f85149', cls:'band-stop',
-    workRest:'25% work / 75% rest. Senior approval required.', bg:'#4d0000' };
-  return           { label:'STOP WORK',  color:'#f85149', cls:'band-stop',
-    workRest:'⛔ STOP all outdoor work immediately.', bg:'#4d0000' };
-}
-
-async function loadWBGT() {
-  const section = document.getElementById('wbgt-section');
-  try {
-    // Call your Spring Boot weather endpoint
-    const r = await fetch('/api/v1/weather/current');
-    const w = await r.json();
-
-    const temp = Number(w.temperature || 0);
-    const humidity = Number(w.humidity || 0);
-    const wbgt = Number(w.wbgt || 0);
-    const workRestBand = w.wbgtWorkRestBand || 'NORMAL';
-    const band = getWBGTBand(wbgt, workRestBand);
-
-    const bands = [
-      { range:'< 26°C',  label:'Normal',     cls:'band-normal',   active: wbgt < 26 },
-      { range:'26-28°C', label:'Caution',    cls:'band-caution',  active: wbgt >= 26 && wbgt < 28 },
-      { range:'28-30°C', label:'Warning',    cls:'band-warning',  active: wbgt >= 28 && wbgt < 30 },
-      { range:'30-32°C', label:'Restricted', cls:'band-restrict', active: wbgt >= 30 && wbgt < 32 },
-      { range:'> 32°C',  label:'Stop Work',  cls:'band-stop',     active: wbgt >= 32 },
+    const PTW_ROWS = [
+      { zone: "SYNTHESIS", type: "Hot Work", status: "ACTIVE", expires: "18:00" },
+      { zone: "COMPRESSOR", type: "Confined Space", status: "ISSUED", expires: "16:00" },
+      { zone: "STORAGE", type: "Work at Height", status: "CLOSED", expires: "-" },
+      { zone: "UREA_HP", type: "Maintenance", status: "NONE", expires: "-" }
     ];
 
-    section.innerHTML = `
-      <div class="wbgt-main">
-        <div class="wbgt-value" style="color:${band.color}">${wbgt}°</div>
-        <div class="wbgt-meta">
-          <div class="wbgt-label" style="color:${band.color}">${w.wbgtStatus || band.label}</div>
-          <div class="wbgt-sub">
-            Temp: ${temp}°C | Humidity: ${humidity}%<br>
-            Work-Rest Band: ${workRestBand} | ${w.isoReference || 'ISO 7933:2004'}
+    function badgeClass(status) {
+      return STATUS_CLASS[status] || "badge-green";
+    }
+
+    function arrow(direction) {
+      switch ((direction || "").toUpperCase()) {
+        case "NORTH": return "&uarr;";
+        case "NORTHEAST": return "&nearr;";
+        case "EAST": return "&rarr;";
+        case "SOUTHEAST": return "&searr;";
+        case "SOUTH": return "&darr;";
+        case "SOUTHWEST": return "&swarr;";
+        case "WEST": return "&larr;";
+        case "NORTHWEST": return "&nwarr;";
+        default: return "&rarr;";
+      }
+    }
+
+    function colorForBand(band) {
+      if (band === "NORMAL" || band === "CAUTION") return "var(--normal)";
+      if (band === "75_25" || band === "50_50" || band === "RESTRICTED") return "var(--warning)";
+      return "var(--critical)";
+    }
+
+    function renderWbgtCard(data) {
+      const band = data.wbgtWorkRestBand || "NORMAL";
+      const color = colorForBand(band);
+      document.getElementById("wbgtSection").innerHTML = `
+        <div class="wbgt-row">
+          <div>
+            <div class="wbgt-value" style="color:${color}">${Number(data.wbgt || 0).toFixed(1)}</div>
+            <div class="small-note">${data.isoReference || "ISO 7933:2004"}</div>
+          </div>
+          <div>
+            <div class="status-badge ${badgeClass(band)}">${band}</div>
+            <div class="small-note" style="margin-top:10px;">Status: ${data.wbgtStatus || "NORMAL"}</div>
           </div>
         </div>
-      </div>
-      <div class="wbgt-bands">
-        ${bands.map(b => `
-          <div class="wbgt-band ${b.cls} ${b.active ? 'active' : ''}">
-            <span>${b.active ? '▶' : '  '}</span>
-            <span>${b.range}</span>
-            <span style="flex:1">${b.label}</span>
-          </div>`).join('')}
-      </div>
-      <div class="work-rest"
-           style="background:${band.bg};color:${band.color};border:1px solid ${band.color}">
-        Work-Rest: ${band.workRest}
-      </div>`;
-
-    document.getElementById('wbgt-updated').textContent =
-      `Updated: ${new Date().toLocaleTimeString('en-IN')}`;
-
-    return { wbgt, band };
-
-  } catch(e) {
-    section.innerHTML = `<div class="loading">WBGT unavailable: ${e.message}</div>`;
-    document.getElementById('wbgt-updated').textContent = 'Live weather endpoint unavailable';
-    return { wbgt: 0, band: getWBGTBand(0) };
-    /*
-    section.innerHTML = `
-      <div class="wbgt-main">
-        <div class="wbgt-value" style="color:${band.color}">${wbgt}°</div>
-        <div class="wbgt-meta">
-          <div class="wbgt-label" style="color:${band.color}">${band.label}</div>
-          <div class="wbgt-sub">
-            Synthetic data (weather API unavailable)<br>
-            Temp: 35°C | Humidity: 65% assumed
-          </div>
+        <div class="meta-list">
+          <div class="metric"><div class="label">Temperature</div><div class="value">${Number(data.temperature || 0).toFixed(1)} C</div></div>
+          <div class="metric"><div class="label">Humidity</div><div class="value">${Number(data.humidity || 0).toFixed(0)}%</div></div>
+          <div class="metric"><div class="label">Wind</div><div class="value">${Number(data.windSpeed || 0).toFixed(1)} m/s</div></div>
         </div>
-      </div>
-      <div class="work-rest"
-           style="background:${band.bg};color:${band.color};border:1px solid ${band.color}">
-        Work-Rest: ${band.workRest}
-      </div>`;
-    document.getElementById('wbgt-updated').textContent =
-      'Synthetic fallback — weather API unreachable';
-    return { wbgt, band };
-    */
-  }
-}
+      `;
+    }
 
-// ═══════════════════════════════════════════
-// NH3 ZONE EXPOSURE
-// ACGIH TLV-TWA = 25 ppm
-// ═══════════════════════════════════════════
-const NH3_TLV_TWA  = 25;
-const NH3_TLV_STEL = 35;
+    function renderNh3Zones(zones) {
+      const banner = document.getElementById("nh3AlertBanner");
+      const hasBreach = zones.some(zone => Number(zone.ppm || 0) > 25);
+      if (hasBreach) {
+        banner.style.display = "block";
+        banner.textContent = "NH3 ALERT: one or more zones exceed 25 ppm. Evacuate using the indicated leeward route.";
+      } else {
+        banner.style.display = "none";
+        banner.textContent = "";
+      }
 
-function getDispersionArrow(direction) {
-  switch ((direction || '').toUpperCase()) {
-    case 'NORTH': return '↑';
-    case 'NORTHEAST': return '↗';
-    case 'EAST': return '→';
-    case 'SOUTHEAST': return '↘';
-    case 'SOUTH': return '↓';
-    case 'SOUTHWEST': return '↙';
-    case 'WEST': return '←';
-    case 'NORTHWEST': return '↖';
-    default: return '→';
-  }
-}
+      document.getElementById("nh3Section").innerHTML = zones.map(zone => {
+        const ppm = Number(zone.ppm || 0);
+        const twa = Number(zone.twa8h || 0);
+        const fill = Math.min((twa / 25) * 100, 100);
+        const fillColor = ppm > 25 ? "var(--critical)" : ppm > 10 ? "var(--warning)" : "var(--normal)";
+        const evacClass = ppm > 10 ? "evacuation red" : "evacuation";
+        return `
+          <div class="zone-card">
+            <div class="zone-head">
+              <div class="zone-title">${zone.zone}</div>
+              <div class="status-badge ${badgeClass(ppm > 25 ? "BAD" : ppm > 10 ? "SUSPECT" : "GOOD")}">${ppm.toFixed(1)} ppm</div>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${fill}%;background:${fillColor};"></div>
+            </div>
+            <div class="zone-meta">
+              <span>TWA 8h: ${twa.toFixed(1)} ppm</span>
+              <span class="dispersion">${arrow(zone.nh3DispersionDirection)} ${zone.nh3DispersionDirection}</span>
+            </div>
+            <div class="zone-meta">
+              <span>Wind: ${Number(zone.windDeg || 0).toFixed(1)} deg</span>
+              <span class="${evacClass}">${zone.evacuationZone || "Muster Point B (leeward side)"}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
 
-function getNH3Color(ppm) {
-  if (ppm >= NH3_TLV_STEL) return '#f85149';
-  if (ppm >= NH3_TLV_TWA)  return '#f85149';
-  if (ppm >= 15)            return '#e3b341';
-  return '#3fb950';
-}
+    function renderFatigueScore(data) {
+      const score = Number(data.score || 0);
+      const width = Math.min(score, 100);
+      const color = data.status === "NORMAL" ? "var(--normal)"
+        : data.status === "CAUTION" ? "var(--warning)"
+        : data.status === "RESTRICTED" ? "var(--critical)"
+        : "#7f1d1d";
 
-function getNH3Status(ppm) {
-  if (ppm >= NH3_TLV_STEL)
-    return '<span style="color:#f85149;font-weight:700">STEL BREACH</span>';
-  if (ppm >= NH3_TLV_TWA)
-    return '<span style="color:#f85149;font-weight:700">TWA BREACH</span>';
-  if (ppm >= 15)
-    return '<span style="color:#e3b341;font-weight:700">WARNING</span>';
-  return '<span style="color:#3fb950;font-weight:700">SAFE</span>';
-}
-
-async function loadNH3Zones() {
-  const section = document.getElementById('nh3-section');
-  try {
-    const r = await fetch('/api/v1/safety/nh3-zones');
-    const zones = await r.json();
-    renderNH3(zones);
-  } catch(e) {
-    // Synthetic fallback for demo
-    const zones = [
-      { zone:'SYNTHESIS',   ppm: 8.2,  twa8h: 7.1,  windDeg:245.0, nh3DispersionDirection:'NORTHEAST', evacuationZone:'Muster Point B (leeward side)' },
-      { zone:'COMPRESSOR',  ppm: 18.5, twa8h: 14.2, windDeg:245.0, nh3DispersionDirection:'NORTHEAST', evacuationZone:'Muster Point B (leeward side)' },
-      { zone:'STORAGE',     ppm: 4.1,  twa8h: 3.8,  windDeg:245.0, nh3DispersionDirection:'NORTHEAST', evacuationZone:'Muster Point B (leeward side)' },
-      { zone:'UREA_HP',     ppm: 22.3, twa8h: 19.1, windDeg:245.0, nh3DispersionDirection:'NORTHEAST', evacuationZone:'Muster Point B (leeward side)' },
-      { zone:'UTILITY',     ppm: 2.0,  twa8h: 1.9,  windDeg:245.0, nh3DispersionDirection:'NORTHEAST', evacuationZone:'Muster Point B (leeward side)' },
-    ];
-    renderNH3(zones);
-    document.getElementById('nh3-updated').textContent =
-      'Synthetic demo data — connect /api/v1/safety/nh3-zones';
-  }
-}
-
-function renderNH3(zones) {
-  const section = document.getElementById('nh3-section');
-  const tlvPct = (ppm) => Math.min((ppm / NH3_TLV_TWA) * 100, 100);
-
-  section.innerHTML = zones.map(z => {
-    const pct   = tlvPct(z.ppm);
-    const color = getNH3Color(z.ppm);
-    const evacuationClass = z.ppm > 10 ? 'evac-zone alert' : 'evac-zone';
-    const dispersionDirection = z.nh3DispersionDirection || 'NORTHEAST';
-    const arrow = getDispersionArrow(dispersionDirection);
-    return `
-    <div class="zone-row">
-      <div class="zone-name">${z.zone}</div>
-      <div class="bar-track">
-        <div class="bar-fill"
-             style="width:${pct}%;background:${color}"></div>
-        <div class="bar-label">${z.ppm} ppm</div>
-        <div class="tlv-marker" style="left:100%"></div>
-      </div>
-      <div class="zone-sev">${getNH3Status(z.ppm)}</div>
-    </div>
-    <div class="dispersion-meta">
-      8hr TWA: ${z.twa8h || z.ppm} ppm
-      ${z.twa8h >= NH3_TLV_TWA
-        ? '<span style="color:#f85149"> ⚠ Factories Act Schedule 8 breach</span>'
-        : ''}
-      <br>
-      <span class="dispersion-arrow">${arrow}</span>
-      Wind ${Number(z.windDeg || 245).toFixed(1)}Â° -> NH3 disperses to ${dispersionDirection}
-      <br>
-      Evacuation zone:
-      <span class="${evacuationClass}">${z.evacuationZone || 'Muster Point B (leeward side)'}</span>
-    </div>`;
-  }).join('') +
-  `<div style="font-size:11px;color:#8b949e;margin-top:8px">
-    🔴 TLV-TWA limit = ${NH3_TLV_TWA} ppm |
-    🔴 STEL limit = ${NH3_TLV_STEL} ppm |
-    Source: ACGIH 2024
-  </div>`;
-
-  document.getElementById('nh3-updated').textContent =
-    `Updated: ${new Date().toLocaleTimeString('en-IN')}`;
-}
-
-// ═══════════════════════════════════════════
-// FATIGUE INDEX — FAID-lite
-// ═══════════════════════════════════════════
-function computeFAID(hoursWorkedToday, consecutiveDays, shiftHour) {
-  let score = 0;
-  score += Math.min(hoursWorkedToday * 5, 50);
-  score += Math.min(consecutiveDays * 8, 30);
-  // Night shift penalty (22:00-06:00)
-  if (shiftHour >= 22 || shiftHour <= 6) score += 20;
-  return Math.min(Math.round(score), 100);
-}
-
-function getFatigueColor(score) {
-  if (score > 100) return '#f85149';
-  if (score > 80)  return '#e3b341';
-  if (score > 60)  return '#f0883e';
-  return '#3fb950';
-}
-
-function getFatigueStatus(score) {
-  if (score > 100) return { label:'MANDATORY REST', bg:'#4d0000', color:'#f85149' };
-  if (score > 80)  return { label:'RESTRICTED',     bg:'#2d2a00', color:'#e3b341' };
-  if (score > 60)  return { label:'MONITOR',        bg:'#3d1a00', color:'#f0883e' };
-  return                   { label:'FIT FOR DUTY',  bg:'#0d4429', color:'#3fb950' };
-}
-
-function getExposureColor(status) {
-  if (status === 'RED') return '#f85149';
-  if (status === 'YELLOW') return '#e3b341';
-  return '#3fb950';
-}
-
-async function loadFatigue() {
-  const section = document.getElementById('fatigue-section');
-  try {
-    const r = await fetch('/api/v1/safety/fatigue');
-    const workers = await r.json();
-    renderFatigue(workers);
-  } catch(e) {
-    const hour = new Date().getHours();
-    const workers = [
-      { workerId:'W-042', name:'Field Op-A1', zone:'SYNTHESIS', hoursToday:9,  days:5, shiftHour:hour, shiftTwa:12.4, twaStatus:'GREEN', stelCurrent:18.2, stelStatus:'YELLOW', acgihTlvTwa:25.0, acgihTlvStel:35.0 },
-      { workerId:'W-043', name:'Field Op-A2', zone:'COMPRESSOR', hoursToday:7,  days:3, shiftHour:hour, shiftTwa:13.3, twaStatus:'GREEN', stelCurrent:21.4, stelStatus:'YELLOW', acgihTlvTwa:25.0, acgihTlvStel:35.0 },
-      { workerId:'W-044', name:'Maint-B1', zone:'UREA_HP', hoursToday:11, days:6, shiftHour:hour, shiftTwa:16.1, twaStatus:'YELLOW', stelCurrent:28.7, stelStatus:'YELLOW', acgihTlvTwa:25.0, acgihTlvStel:35.0 },
-      { workerId:'W-045', name:'Maint-B2', zone:'STORAGE', hoursToday:6,  days:2, shiftHour:hour, shiftTwa:7.2, twaStatus:'GREEN', stelCurrent:12.6, stelStatus:'GREEN', acgihTlvTwa:25.0, acgihTlvStel:35.0 },
-      { workerId:'W-046', name:'Ctrl Room-C', zone:'UTILITY', hoursToday:8,  days:4, shiftHour:22, shiftTwa:4.2, twaStatus:'GREEN', stelCurrent:9.8, stelStatus:'GREEN', acgihTlvTwa:25.0, acgihTlvStel:35.0 },
-    ].map(w => ({
-      ...w,
-      score: computeFAID(w.hoursToday, w.days, w.shiftHour)
-    }));
-    renderFatigue(workers);
-  }
-}
-
-function renderFatigue(workers) {
-  const section = document.getElementById('fatigue-section');
-  section.innerHTML = `<div class="fatigue-grid">
-    ${workers.map(w => {
-      const score  = w.score ?? computeFAID(w.hoursToday||8, w.days||3, new Date().getHours());
-      const color  = getFatigueColor(score);
-      const status = getFatigueStatus(score);
-      const twa = Number(w.shiftTwa || 0);
-      const twaStatus = w.twaStatus || 'GREEN';
-      const twaColor = getExposureColor(twaStatus);
-      const twaWidth = Math.min((twa / Number(w.acgihTlvTwa || 25)) * 100, 100);
-      const stelColor = getExposureColor(w.stelStatus || 'GREEN');
-      return `<div class="fatigue-card">
+      document.getElementById("fatigueSection").innerHTML = `
         <div class="fatigue-score" style="color:${color}">${score}</div>
-        <div class="fatigue-name">${w.name || w.workerId}</div>
-        <div class="fatigue-status"
-             style="background:${status.bg};color:${status.color}">
-          ${status.label}
+        <div class="status-badge ${badgeClass(data.status)}">${data.status}</div>
+        <div class="gauge-track">
+          <div class="gauge-fill" style="width:${width}%;background:${color};"></div>
         </div>
-        <div class="twa-track">
-          <div class="twa-fill" style="width:${twaWidth}%;background:${twaColor}"></div>
+        <div class="meta-list">
+          <div class="metric"><div class="label">Normal Threshold</div><div class="value">${data.threshold_normal}</div></div>
+          <div class="metric"><div class="label">Restricted Threshold</div><div class="value">${data.threshold_restricted}</div></div>
+          <div class="metric"><div class="label">Mandatory Rest</div><div class="value">${data.threshold_mandatory_rest}</div></div>
         </div>
-        <div class="twa-meta">
-          ${w.zone || 'ZONE'} | ${w.workerId || 'W-000'}<br>
-          Shift TWA: <span style="color:${twaColor};font-weight:700">${twa.toFixed(1)} ppm (${twaStatus})</span><br>
-          STEL Current: <span style="color:${stelColor};font-weight:700">${Number(w.stelCurrent || 0).toFixed(1)} ppm (${w.stelStatus || 'GREEN'})</span>
-        </div>
-      </div>`;
-    }).join('')}
-  </div>`;
-}
-
-// ═══════════════════════════════════════════
-// PTW STATUS
-// ═══════════════════════════════════════════
-async function loadPTW() {
-  const section = document.getElementById('ptw-section');
-  try {
-    const r = await fetch('/api/v1/safety/ptw');
-    const ptws = await r.json();
-    renderPTW(ptws);
-  } catch(e) {
-    const ptws = [
-      { zone:'SYNTHESIS',  type:'Hot Work',       status:'ACTIVE',    expires:'18:00', issuedTo:'Ravi K.' },
-      { zone:'COMPRESSOR', type:'Confined Space',  status:'ISSUED',    expires:'16:00', issuedTo:'Suresh M.' },
-      { zone:'STORAGE',    type:'Height Work',     status:'CLOSED',    expires:'–',     issuedTo:'Anil P.' },
-      { zone:'UREA_HP',    type:'Maintenance',     status:'NONE',      expires:'–',     issuedTo:'–' },
-      { zone:'UTILITY',    type:'Electrical',      status:'SUSPENDED', expires:'20:00', issuedTo:'Kiran R.' },
-    ];
-    renderPTW(ptws);
-  }
-}
-
-function renderPTW(ptws) {
-  const section = document.getElementById('ptw-section');
-  const rows = ptws.map(p => {
-    const s = (p.status||'NONE').toUpperCase();
-    const flag = s === 'NONE'
-      ? '<span style="color:#f85149;font-size:11px"> ⚠ No PTW — block maintenance</span>'
-      : '';
-    return `<tr>
-      <td>${p.zone}</td>
-      <td>${p.type}</td>
-      <td><span class="ptw-badge ptw-${s}">${s}</span>${flag}</td>
-      <td>${p.expires}</td>
-      <td>${p.issuedTo}</td>
-    </tr>`;
-  }).join('');
-
-  section.innerHTML = `
-    <table class="ptw-table">
-      <thead><tr>
-        <th>Zone</th><th>Work Type</th>
-        <th>Status</th><th>Expires</th><th>Issued To</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-}
-
-// ═══════════════════════════════════════════
-// SAFETY SUMMARY
-// ═══════════════════════════════════════════
-async function loadSummary() {
-  const section = document.getElementById('summary-section');
-  try {
-    const [nh3, fatigue, ptw] = await Promise.allSettled([
-      fetch('/api/v1/safety/nh3-zones').then(r=>r.json()),
-      fetch('/api/v1/safety/fatigue').then(r=>r.json()),
-      fetch('/api/v1/safety/ptw').then(r=>r.json()),
-    ]);
-
-    const nh3DataRaw  = nh3.status  === 'fulfilled' ? nh3.value  : [];
-    const fatDataRaw  = fatigue.status === 'fulfilled' ? fatigue.value : [];
-    const ptwDataRaw  = ptw.status  === 'fulfilled' ? ptw.value  : [];
-
-    const nh3Data = Array.isArray(nh3DataRaw) ? nh3DataRaw : [];
-    const fatData = Array.isArray(fatDataRaw) ? fatDataRaw : [];
-    const ptwData = Array.isArray(ptwDataRaw) ? ptwDataRaw : [];
-
-    const nh3Breach   = nh3Data.filter(z => (z.ppm||0) >= 25).length;
-    const fatigueHigh = fatData.filter(w => (w.score||0) > 80).length;
-    const ptwMissing  = ptwData.filter(p => (p.status||'NONE') === 'NONE').length;
-
-    const overall = nh3Breach === 0 && fatigueHigh === 0 && ptwMissing === 0
-      ? { label:'ALL CLEAR', color:'#3fb950', bg:'#0d4429' }
-      : nh3Breach > 0
-        ? { label:'NH3 BREACH — IMMEDIATE ACTION', color:'#f85149', bg:'#4d0000' }
-        : { label:'ATTENTION REQUIRED', color:'#e3b341', bg:'#2d2a00' };
-
-    section.innerHTML = `
-      <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
-        <div style="flex:1;padding:16px;border-radius:8px;
-                    background:${overall.bg};border:1px solid ${overall.color}">
-          <div style="font-size:20px;font-weight:700;color:${overall.color}">
-            ${overall.label}
-          </div>
-          <div style="font-size:12px;color:#8b949e;margin-top:6px">
-            Shift safety assessment — advisory only
-          </div>
-        </div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap">
-          <div style="text-align:center;padding:12px 20px;
-                      background:#21262d;border-radius:8px">
-            <div style="font-size:28px;font-weight:700;
-                        color:${nh3Breach>0?'#f85149':'#3fb950'}">
-              ${nh3Breach}
-            </div>
-            <div style="font-size:11px;color:#8b949e">NH3 Zones Breached</div>
-          </div>
-          <div style="text-align:center;padding:12px 20px;
-                      background:#21262d;border-radius:8px">
-            <div style="font-size:28px;font-weight:700;
-                        color:${fatigueHigh>0?'#e3b341':'#3fb950'}">
-              ${fatigueHigh}
-            </div>
-            <div style="font-size:11px;color:#8b949e">High Fatigue Workers</div>
-          </div>
-          <div style="text-align:center;padding:12px 20px;
-                      background:#21262d;border-radius:8px">
-            <div style="font-size:28px;font-weight:700;
-                        color:${ptwMissing>0?'#f85149':'#3fb950'}">
-              ${ptwMissing}
-            </div>
-            <div style="font-size:11px;color:#8b949e">PTW Missing</div>
-          </div>
-        </div>
-      </div>
-      <div style="margin-top:12px;font-size:11px;color:#8b949e">
-        ⚠ Advisory only. Supervisor must review before any duty change.
-        Factories Act 1948 Schedule 8 | ACGIH TLV | OISD-STD-105 | ISO 7933
-      </div>`;
-
-    drawSafetyCharts(nh3Data, nh3Breach, fatigueHigh, ptwMissing);
-
-  } catch(e) {
-    section.innerHTML = `<div class="loading">Summary unavailable — check API endpoints.</div>`;
-  }
-}
-
-function drawSafetyCharts(nh3Data, nh3Breach, fatigueHigh, ptwMissing) {
-  const riskCanvas = document.getElementById('riskMixChart');
-  const zoneCanvas = document.getElementById('zoneShareChart');
-  if (!riskCanvas || !zoneCanvas) return;
-
-  if (riskMixChart) { riskMixChart.destroy(); riskMixChart = null; }
-  if (zoneShareChart) { zoneShareChart.destroy(); zoneShareChart = null; }
-
-  const riskVals = [nh3Breach, fatigueHigh, ptwMissing];
-  const riskTotal = riskVals.reduce((s, v) => s + v, 0);
-  riskMixChart = new Chart(riskCanvas.getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['NH3 Breaches', 'High Fatigue', 'PTW Missing'],
-      datasets: [{
-        data: riskVals,
-        backgroundColor: ['#f85149', '#e3b341', '#58a6ff'],
-        borderColor: '#161b22',
-        borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: '#8b949e', font: { size: 11 } } },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const pct = riskTotal ? ((ctx.parsed * 100) / riskTotal).toFixed(1) : '0.0';
-              return `${ctx.label}: ${ctx.parsed} (${pct}%)`;
-            }
-          }
-        }
-      }
+        <div class="small-note">${data.note}</div>
+      `;
     }
-  });
 
-  const zones = Array.isArray(nh3Data) ? nh3Data : [];
-  const zLabels = zones.map(z => z.zone || 'ZONE');
-  const zValues = zones.map(z => Number(z.ppm || 0));
-  const zColors = zValues.map(v => (v >= 25 ? '#f85149' : v >= 15 ? '#e3b341' : '#3fb950'));
+    function renderSensorHealth(data) {
+      const rows = (data.sensors || []).map(sensor => {
+        const quality = sensor.quality || "GOOD";
+        const rowClass = quality === "BAD"
+          ? "bad-row"
+          : quality === "SUSPECT"
+          ? "suspect-row"
+          : quality === "CALIBRATION_DUE"
+          ? "due-row"
+          : "good-row";
+        return `
+          <tr class="${rowClass}">
+            <td>${sensor.sensorType}</td>
+            <td><span class="status-badge ${badgeClass(quality)}">${quality}</span></td>
+            <td>${sensor.message}</td>
+          </tr>
+        `;
+      }).join("");
 
-  zoneShareChart = new Chart(zoneCanvas.getContext('2d'), {
-    type: 'pie',
-    data: {
-      labels: zLabels,
-      datasets: [{
-        data: zValues,
-        backgroundColor: zColors,
-        borderColor: '#161b22',
-        borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: '#8b949e', font: { size: 11 } } }
-      }
+      document.getElementById("sensorHealthSection").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Sensor Type</th>
+              <th>Quality</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="small-note">
+          Overall: ${data.overallHealth} | BAD: ${data.badSensorCount} | SUSPECT: ${data.suspectSensorCount}
+        </div>
+      `;
     }
-  });
-}
 
-// ═══════════════════════════════════════════
-// INIT + AUTO REFRESH
-// ═══════════════════════════════════════════
-(async () => {
-  await Promise.all([
-    loadWBGT(),
-    loadNH3Zones(),
-    loadFatigue(),
-    loadPTW(),
-    loadSummary(),
-  ]);
-  // Refresh every 5 minutes
-  setInterval(() => {
-    loadWBGT();
-    loadNH3Zones();
-    loadFatigue();
-    loadPTW();
-    loadSummary();
-  }, 5 * 60 * 1000);
-})();
-</script>
+    function renderPtwTable() {
+      document.getElementById("ptwSection").innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Zone</th>
+              <th>PTW Type</th>
+              <th>Status</th>
+              <th>Expires</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${PTW_ROWS.map(row => `
+              <tr>
+                <td>${row.zone}</td>
+                <td>${row.type}</td>
+                <td><span class="status-badge ${badgeClass(row.status === "ACTIVE" ? "WARNING" : row.status === "ISSUED" ? "CAUTION" : "GOOD")}">${row.status}</span></td>
+                <td>${row.expires}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <div class="ptw-note">Static demo data - do not treat as permit authority.</div>
+      `;
+    }
+
+    async function refresh() {
+      const currentHour = new Date().getHours();
+      const [wbgtRes, nh3Res, fatigueRes, sensorHealthRes] = await Promise.all([
+        fetch("/api/v1/weather/current").then(r => r.json()),
+        fetch("/api/v1/safety/nh3-zones").then(r => r.json()),
+        fetch(`/api/v1/safety/fatigue-score?shiftHours=9&consecutiveDays=4&currentHour=${currentHour}&hoursSinceLastSleep=7`).then(r => r.json()),
+        fetch("/api/v1/sensor/health/COMP-01").then(r => r.json())
+      ]);
+
+      renderWbgtCard(wbgtRes);
+      renderNh3Zones(nh3Res);
+      renderFatigueScore(fatigueRes);
+      renderSensorHealth(sensorHealthRes);
+      renderPtwTable();
+      document.getElementById("lastUpdated").textContent = `Last refreshed: ${new Date().toLocaleString("en-IN")}`;
+    }
+
+    refresh().catch(error => {
+      document.getElementById("lastUpdated").textContent = `Safety dashboard error: ${error.message}`;
+    });
+    setInterval(() => {
+      refresh().catch(error => {
+        document.getElementById("lastUpdated").textContent = `Safety dashboard error: ${error.message}`;
+      });
+    }, 30000);
+  </script>
 </body>
 </html>
