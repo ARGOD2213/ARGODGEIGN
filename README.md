@@ -4,13 +4,14 @@
 
 - Sprint 1: `CLOSED`
 - Sprint 2: `CLOSED` (Day 1 to Day 14 evidence committed)
+- Sprint 3: `CLOSED` (RB-09, RB-15, all dashboards fully wired)
+- Sprint 4: `PENDING`
 - Active dashboards:
   - `/index.html` (overview)
   - `/machine.html` (machine-wise)
   - `/safety.html` (human safety)
   - `/plant.html` (plant-wide)
   - `/compliance.html` (compliance)
-- Sprint 3: `PENDING`
 
 ## Mobile Browser Space
 

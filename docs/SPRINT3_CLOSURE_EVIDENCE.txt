@@ -1,0 +1,19 @@
+Sprint 3 closure date: 2026-03-22
+Tasks completed: RB-09, RB-15, all 5 dashboards wired, nav unified
+mvn package: PASS
+New endpoints added:
+  GET /api/v1/sensor/health/{machineId}
+  GET /api/v1/safety/fatigue-score
+  GET /api/v1/compliance/ocs-score
+All LLM outputs: AiAdvisoryWrapper enforced
+Rule engine: Lambda only - no threshold logic in Spring Boot
+Commit chain:
+  edcf820 feat(monitoring): RB-09 sensor health monitor with quality tags
+  1e2341c feat(safety): RB-15 FAID-lite fatigue model backend
+  8a56b31 feat(dashboard): safety.html wired to all Sprint 3 live endpoints
+  9ec7793 feat(dashboard): machine.html fully wired with sensor health and AI advisory
+  096a031 feat(dashboard): plant.html cascade risk and zone alert summary wired
+  eaccd2f feat(dashboard): compliance.html OCS score and statutory actions wired
+  f017e8a feat(dashboard): index.html overview dashboard fully wired as master summary
+  e4b4e51 feat(dashboard): unified nav header and footer across all 5 dashboards
+  Task 9 commit: this closure evidence and README sprint status update commit
