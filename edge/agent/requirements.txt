@@ -1,0 +1,5 @@
+boto3>=1.34.0
+paho-mqtt>=2.0.0
+
+# stdlib modules used (no install needed):
+# sqlite3, asyncio, json, logging, os, time, datetime, pathlib
