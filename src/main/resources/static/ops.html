@@ -18,10 +18,10 @@ h1{font-size:22px;font-weight:700;color:#38bdf8;margin-bottom:4px}
 .row:last-child{margin-bottom:0}
 .lbl{font-size:13px;color:#94a3b8}
 .badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px}
-.run{background:#14532d;color:#4ade80}
-.stop{background:#450a0a;color:#f87171}
+.run,.running{background:#14532d;color:#4ade80}
+.stop,.stopped{background:#450a0a;color:#f87171}
 .pend{background:#312e81;color:#a5b4fc}
-.unk{background:#1e293b;color:#64748b;border:1px solid #334155}
+.unk,.unknown{background:#1e293b;color:#64748b;border:1px solid #334155}
 .btn{width:100%;max-width:360px;padding:17px;border:none;
      border-radius:14px;font-size:16px;font-weight:700;
      cursor:pointer;margin-bottom:10px;transition:opacity .15s}
@@ -66,6 +66,23 @@ input[type=password]:focus{border-color:#2563eb}
     <span class="lbl">Uptime</span>
     <span class="lbl"  id="up-label">—</span>
   </div>
+  <div class="row">
+    <span class="lbl">Edge Agent</span>
+    <span class="badge unknown" id="edge-badge">â€”</span>
+  </div>
+</div>
+
+<div id="edge-offline-banner" style="display:none;
+     background:#431407;border:1px solid #d97706;
+     border-radius:10px;padding:12px 16px;
+     width:100%;max-width:360px;margin-bottom:16px;
+     font-size:13px;color:#fbbf24;line-height:1.5">
+  ⚠ Edge Agent OFFLINE<br>
+  <span style="font-size:11px;color:#92400e">
+    Local rule engine and ring buffer inactive.
+    Cloud Lambda rule engine still operating normally.
+    Check edge PC connectivity.
+  </span>
 </div>
 
 <p class="pw-label">Control password</p>
@@ -128,6 +145,8 @@ async function checkHealth(url) {
 function ui(status, healthy) {
   const sb = document.getElementById('st-badge');
   const hb = document.getElementById('hl-badge');
+  const edgeBadge = document.getElementById('edge-badge');
+  const banner = document.getElementById('edge-offline-banner');
   const bs = document.getElementById('b-start');
   const bx = document.getElementById('b-stop');
   const bo = document.getElementById('b-open');
@@ -138,6 +157,13 @@ function ui(status, healthy) {
   if (!status) {
     sb.className = 'badge unk';
     sb.textContent = 'Unknown';
+    if (edgeBadge) {
+      edgeBadge.className = 'badge unknown';
+      edgeBadge.textContent = 'UNKNOWN';
+    }
+    if (banner) {
+      banner.style.display = 'none';
+    }
     return;
   }
 
@@ -179,6 +205,18 @@ function ui(status, healthy) {
     hb.textContent = '—';
     bo.style.display = 'none';
     dg.style.display = 'none';
+  }
+
+  if (edgeBadge && status.edgeStatus) {
+    edgeBadge.className = 'badge ' + (
+      status.edgeStatus === 'ONLINE' ? 'running' :
+      status.edgeStatus === 'OFFLINE' ? 'stopped' : 'unknown'
+    );
+    edgeBadge.textContent = status.edgeStatus;
+  }
+
+  if (banner) {
+    banner.style.display = status.edgeStatus === 'OFFLINE' ? 'block' : 'none';
   }
 }
 

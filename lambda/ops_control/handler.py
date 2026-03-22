@@ -2,6 +2,7 @@ import boto3
 import json
 import datetime
 import os
+from boto3.dynamodb.conditions import Attr
 
 ec2 = boto3.client("ec2", region_name="ap-south-1")
 ssm = boto3.client("ssm", region_name="ap-south-1")
@@ -46,12 +47,40 @@ def get_status():
             (datetime.datetime.now(datetime.timezone.utc) - launch).seconds / 60
         )
 
+    def get_edge_status():
+        """
+        Check DynamoDB for the last EDGE_HEARTBEAT record.
+        Returns ONLINE if heartbeat is within 5 minutes,
+        OFFLINE if older than 5 minutes, UNKNOWN if no record exists.
+        """
+        try:
+            ddb = boto3.resource("dynamodb", region_name="ap-south-1")
+            table = ddb.Table("iot-sensor-events")
+            resp = table.scan(
+                FilterExpression=Attr("alertId").begins_with("edge_heartbeat#")
+            )
+            items = resp.get("Items", [])
+            if not items:
+                return "UNKNOWN"
+
+            latest = max(items, key=lambda item: item.get("timestamp", ""))
+            ts_str = latest.get("timestamp", "")
+            if not ts_str:
+                return "UNKNOWN"
+
+            ts = datetime.datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+            age_seconds = (datetime.datetime.now(datetime.timezone.utc) - ts).total_seconds()
+            return "ONLINE" if age_seconds < 300 else "OFFLINE"
+        except Exception:
+            return "UNKNOWN"
+
     return {
         "instanceId": INSTANCE_ID,
         "state": state,
         "uptimeMinutes": uptime,
         "appUrl": f"http://{ELASTIC_IP}:8080" if state == "running" else None,
         "checkedAt": datetime.datetime.utcnow().isoformat() + "Z",
+        "edgeStatus": get_edge_status(),
     }
 
 
