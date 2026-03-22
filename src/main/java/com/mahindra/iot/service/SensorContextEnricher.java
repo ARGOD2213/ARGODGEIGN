@@ -24,18 +24,20 @@ public class SensorContextEnricher {
     private final AthenaAnalyticsService athenaAnalyticsService;
     private final SensorEventRepository sensorEventRepository;
     private final WeatherService weatherService;
+    private final SensorHealthMonitor sensorHealthMonitor;
 
     public SensorContext enrich(String machineId, String sensorType) {
         String machineClass = inferMachineClass(machineId);
+        List<SensorEvent> deviceEvents = sensorEventRepository.findByDeviceId(machineId);
 
         List<Map<String, Object>> trend = athenaAnalyticsService
                 .queryMachineTrend(machineId, 24, machineClass);
 
         if (trend.isEmpty()) {
-            trend = fallbackTrend(machineId, sensorType, machineClass);
+            trend = fallbackTrend(deviceEvents, sensorType, machineClass);
         }
 
-        List<RecentAlert> recentAlerts = sensorEventRepository.findByDeviceId(machineId).stream()
+        List<RecentAlert> recentAlerts = deviceEvents.stream()
                 .filter(e -> "WARNING".equalsIgnoreCase(e.getStatus())
                         || "CRITICAL".equalsIgnoreCase(e.getStatus())
                         || e.getAlertId() != null)
@@ -51,6 +53,11 @@ public class SensorContextEnricher {
 
         int dataPoints = trend.size();
         boolean hasMaintHistory = dataPoints >= MAINT_HISTORY_THRESHOLD;
+        List<SensorHealthMonitor.SensorHealthSnapshot> sensorHealth = sensorHealthMonitor.buildSensorSnapshots(machineId, deviceEvents);
+        boolean hasBadSensorData = sensorHealth.stream().anyMatch(s -> "BAD".equalsIgnoreCase(s.quality().name()));
+        String dataQualityNotice = hasBadSensorData
+                ? "WARNING: sensor data quality BAD - analysis confidence reduced."
+                : "Sensor data quality within expected range.";
 
         WeatherService.WeatherData weather = weatherService.getWeather(17.3850, 78.4867);
         WeatherContext weatherContext = new WeatherContext(
@@ -71,9 +78,12 @@ public class SensorContextEnricher {
                 recentAlerts,
                 equipmentMaster,
                 weatherContext,
+                sensorHealth,
+                dataQualityNotice,
                 dataPoints,
                 hasMaintHistory,
-                weatherContext.available()
+                weatherContext.available(),
+                hasBadSensorData
         );
     }
 
@@ -86,14 +96,16 @@ public class SensorContextEnricher {
         map.put("hasMaintHistory", context.hasMaintHistory());
         map.put("weatherContext", context.weatherContext());
         map.put("equipmentMaster", context.equipmentMaster());
+        map.put("sensorDataQuality", context.sensorHealth());
+        map.put("dataQualityNotice", context.dataQualityNotice());
         map.put("recentAlerts", context.recentAlerts());
         map.put("trendSample", context.trend().stream().limit(10).toList());
         return map;
     }
 
-    private List<Map<String, Object>> fallbackTrend(String machineId, String sensorType, String machineClass) {
+    private List<Map<String, Object>> fallbackTrend(List<SensorEvent> events, String sensorType, String machineClass) {
         Instant cutoff = Instant.now().minus(24, ChronoUnit.HOURS);
-        return sensorEventRepository.findByDeviceId(machineId).stream()
+        return events.stream()
                 .filter(e -> sensorType == null || sensorType.isBlank()
                         || sensorType.equalsIgnoreCase(e.getSensorType()))
                 .filter(e -> parseInstantSafe(e.getTimestamp()).isAfter(cutoff))
@@ -167,9 +179,12 @@ public class SensorContextEnricher {
             List<RecentAlert> recentAlerts,
             EquipmentMaster equipmentMaster,
             WeatherContext weatherContext,
+            List<SensorHealthMonitor.SensorHealthSnapshot> sensorHealth,
+            String dataQualityNotice,
             int dataPointsAvailable,
             boolean hasMaintHistory,
-            boolean hasWeatherContext
+            boolean hasWeatherContext,
+            boolean hasBadSensorData
     ) {
     }
 

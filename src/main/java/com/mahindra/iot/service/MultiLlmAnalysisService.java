@@ -46,7 +46,8 @@ public class MultiLlmAnalysisService {
         String confidence = computeConfidence(
                 context.dataPointsAvailable(),
                 context.hasMaintHistory(),
-                context.hasWeatherContext());
+                context.hasWeatherContext(),
+                context.hasBadSensorData());
         event.setAiConfidence(confidence);
 
         if (!analysisEnabled || (!"WARNING".equals(event.getStatus()) && !"CRITICAL".equals(event.getStatus()))) {
@@ -117,7 +118,8 @@ public class MultiLlmAnalysisService {
 
     private String computeConfidence(int dataPointsAvailable,
                                      boolean hasMaintHistory,
-                                     boolean hasWeatherContext) {
+                                     boolean hasWeatherContext,
+                                     boolean hasBadSensorData) {
         int score = 0;
 
         if (dataPointsAvailable >= HIGH_DATA_POINTS) {
@@ -134,13 +136,19 @@ public class MultiLlmAnalysisService {
             score += 1;
         }
 
+        String confidence;
         if (score >= 4) {
-            return "HIGH";
+            confidence = "HIGH";
+        } else if (score >= 2) {
+            confidence = "MEDIUM";
+        } else {
+            confidence = "LOW";
         }
-        if (score >= 2) {
-            return "MEDIUM";
+
+        if (hasBadSensorData) {
+            return "HIGH".equals(confidence) ? "MEDIUM" : "LOW";
         }
-        return "LOW";
+        return confidence;
     }
 
     private void callGemini(SensorEvent event, SensorContext context) {
@@ -212,6 +220,7 @@ public class MultiLlmAnalysisService {
             Location: %s | Category: %s
             Weather: %.1fC, %s
             Weather Note: %s
+            Data Quality Notice: %s
 
             Context JSON:
             %s
@@ -233,6 +242,7 @@ public class MultiLlmAnalysisService {
                 event.getWeatherTempC() != null ? event.getWeatherTempC() : 28.0,
                 event.getWeatherCondition() != null ? event.getWeatherCondition() : "Clear",
                 event.getWeatherCorrelationNote() != null ? event.getWeatherCorrelationNote() : "None",
+                context.dataQualityNotice(),
                 contextJson
         );
     }
