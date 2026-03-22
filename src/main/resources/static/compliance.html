@@ -1,371 +1,593 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ARGODREIGN — Compliance Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARGUS Compliance Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "Segoe UI", sans-serif;
-      background: #0d1117;
-      color: #e6edf3;
-      min-height: 100vh;
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --line: #dbe4ee;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --critical: #dc2626;
+      --warning: #d97706;
+      --normal: #16a34a;
     }
-    .topbar {
-      background: #161b22;
-      border-bottom: 1px solid #30363d;
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #1e293b;
       padding: 12px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
     }
-    .topbar h1 { font-size: 16px; font-weight: 700; color: #58a6ff; letter-spacing: 1px; }
-    .topbar nav a {
-      color: #8b949e;
-      text-decoration: none;
-      font-size: 13px;
-      margin-left: 20px;
-    }
-    .topbar nav a:hover { color: #e6edf3; }
-    .topbar nav a.active { color: #58a6ff; font-weight: 600; }
 
-    .banner {
-      background: #1a0a00;
-      border-bottom: 2px solid #d29922;
-      padding: 8px 24px;
-      font-size: 12px;
+    header span {
+      color: white;
       font-weight: 700;
-      color: #e3b341;
-      text-align: center;
+      font-size: 18px;
     }
 
-    .container {
-      padding: 20px 24px;
+    nav {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    nav a.active {
+      color: #ffffff;
+    }
+
+    .page {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .hero p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .stamp {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 20px;
     }
-    @media (max-width: 960px) {
-      .container { grid-template-columns: 1fr; }
-    }
-    .full { grid-column: 1 / -1; }
-    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 960px) {
-      .chart-grid { grid-template-columns: 1fr; }
-    }
-    .chart-wrap { height: 250px; }
+
     .card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      padding: 16px 18px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
     }
-    .card h3 {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #8b949e;
-      margin-bottom: 12px;
+
+    .full {
+      grid-column: 1 / -1;
     }
+
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+
+    .sub {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .score-row {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 18px;
+      align-items: center;
+    }
+
     .score {
-      font-size: 54px;
-      font-weight: 700;
+      font-size: 64px;
+      font-weight: 800;
       line-height: 1;
     }
-    .score-meta { margin-top: 8px; color: #8b949e; font-size: 12px; }
-    .formula { margin-top: 8px; font-size: 11px; color: #8b949e; }
-    .chip {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 11px;
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
       font-weight: 700;
-      margin-top: 10px;
+      margin-top: 12px;
     }
-    .chip-green { background: #0d4429; color: #3fb950; border: 1px solid #238636; }
-    .chip-yellow { background: #2d2a00; color: #e3b341; border: 1px solid #9e6a03; }
-    .chip-red { background: #4d0000; color: #f85149; border: 1px solid #da3633; }
+
+    .green { background: #dcfce7; color: var(--normal); }
+    .amber { background: #fef3c7; color: var(--warning); }
+    .red { background: #fee2e2; color: var(--critical); }
+
+    .bars {
+      display: grid;
+      gap: 12px;
+    }
+
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .track {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: 999px;
+    }
 
     .table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
+      font-size: 14px;
     }
-    .table th {
-      text-align: left;
-      font-size: 11px;
-      text-transform: uppercase;
-      color: #8b949e;
-      padding: 8px 10px;
-      border-bottom: 1px solid #30363d;
-    }
-    .table td {
-      padding: 8px 10px;
-      border-bottom: 1px solid #21262d;
-    }
-    .table tr:hover td { background: #21262d; }
 
-    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
-    .btn {
-      border: 1px solid #30363d;
-      background: #21262d;
-      color: #e6edf3;
-      border-radius: 8px;
-      padding: 10px 12px;
+    .table th,
+    .table td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    .due-soon td {
+      background: #fef2f2;
+      color: var(--critical);
+      font-weight: 700;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: #f8fafc;
+    }
+
+    .metric .label {
+      color: var(--muted);
       font-size: 12px;
+    }
+
+    .metric .value {
+      margin-top: 6px;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
       cursor: pointer;
     }
-    .btn:hover { border-color: #58a6ff; color: #58a6ff; }
+
+    button.secondary {
+      background: #0f172a;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 200;
+    }
+
+    .modal {
+      width: min(720px, 100%);
+      background: white;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+      padding: 20px;
+    }
 
     pre {
-      margin-top: 10px;
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 11px;
+      margin: 0;
+      max-height: 360px;
+      overflow: auto;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 12px;
       white-space: pre-wrap;
       word-break: break-word;
-      color: #8b949e;
-      max-height: 180px;
-      overflow: auto;
     }
-    .updated { margin-top: 8px; text-align: right; color: #8b949e; font-size: 11px; }
-    .loading { color: #8b949e; font-size: 13px; }
+
+    .chart-wrap {
+      height: 260px;
+      margin-top: 16px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    @media (max-width: 980px) {
+      .grid,
+      .metric-grid,
+      .score-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .page {
+        padding: 16px;
+      }
+    }
   </style>
 </head>
 <body>
-<div class="topbar">
-  <h1>📘 ARGODREIGN — Compliance Dashboard</h1>
-  <nav>
-    <a href="/index.html">Overview</a>
-    <a href="/machine.html">Machines</a>
-    <a href="/safety.html">Safety</a>
-    <a href="/plant.html">Plant</a>
-    <a href="/compliance.html" class="active">Compliance</a>
-  </nav>
-</div>
+  <header>
+    <span>ARGUS - Industrial IoT Platform</span>
+    <nav>
+      <a href="/index.html">Overview</a>
+      <a href="/machine.html">Machine</a>
+      <a href="/safety.html">Safety</a>
+      <a href="/plant.html">Plant</a>
+      <a href="/compliance.html" class="active">Compliance</a>
+    </nav>
+  </header>
 
-<div class="banner">
-  ⚠ Compliance dashboard is advisory for demo mode. Statutory submission artifacts require final legal validation.
-</div>
-
-<div class="container">
-  <div class="card">
-    <h3>✅ Overall Compliance Score (KPI-21)</h3>
-    <div id="score-block" class="loading">Loading compliance score...</div>
-  </div>
-
-  <div class="card">
-    <h3>🌿 Environmental Parameters</h3>
-    <div id="env-block" class="loading">Loading environmental snapshot...</div>
-  </div>
-
-  <div class="card full">
-    <h3>🧰 Inspection Due Dates</h3>
-    <div id="inspection-block" class="loading">Loading inspection table...</div>
-  </div>
-
-  <div class="card full">
-    <h3>🧾 Statutory Artifact Placeholder</h3>
-    <div class="btn-row">
-      <button id="btn-form7" class="btn">Generate Form 7 (JSON)</button>
-      <button id="btn-monthly" class="btn">Export Monthly Compliance Report (CSV)</button>
-    </div>
-    <pre id="artifact-output">No action yet.</pre>
-  </div>
-
-  <div class="card full">
-    <h3>📉 Compliance Analytics (Interactive)</h3>
-    <div class="chart-grid">
-      <div class="chart-wrap"><canvas id="componentMixChart"></canvas></div>
-      <div class="chart-wrap"><canvas id="inspectionMixChart"></canvas></div>
-    </div>
-  </div>
-</div>
-
-<script>
-const API = "";
-let componentMixChart = null;
-let inspectionMixChart = null;
-let latestSummary = null;
-let latestInspections = [];
-
-function scoreColor(score) {
-  if (score > 95) return "chip-green";
-  if (score >= 85) return "chip-yellow";
-  return "chip-red";
-}
-
-async function loadSummary() {
-  const el = document.getElementById("score-block");
-  try {
-    const data = await fetch(`${API}/api/v1/compliance/summary`).then(r => r.json());
-    latestSummary = data;
-    const score = Number(data.overallComplianceScore || 0);
-    const chip = scoreColor(score);
-    el.innerHTML = `
-      <div class="score">${score.toFixed(1)}%</div>
-      <div class="score-meta">
-        Machine: ${Number(data.machineCompliance || 0).toFixed(1)}% |
-        Human: ${Number(data.humanCompliance || 0).toFixed(1)}% |
-        Env: ${Number(data.environmentCompliance || 0).toFixed(1)}%
+  <main class="page">
+    <section class="hero">
+      <div>
+        <h1>Compliance Dashboard</h1>
+        <p>Overall compliance score, inspection watchlist, statutory actions, and demo environmental view.</p>
       </div>
-      <div class="formula">${data.formula || "Machine*0.35 + Human*0.35 + Env*0.30"}</div>
-      <span class="chip ${chip}">${score > 95 ? "COMPLIANT" : score >= 85 ? "ATTENTION" : "NON-COMPLIANT"}</span>
-      <div class="updated">Updated: ${new Date().toLocaleTimeString("en-IN")}</div>
-    `;
-  } catch (e) {
-    el.innerHTML = `<div class="loading">Summary unavailable: ${e.message}</div>`;
-  }
-  drawComplianceCharts();
-}
+      <div class="stamp" id="lastUpdated">Loading compliance telemetry...</div>
+    </section>
 
-async function loadEnvironment() {
-  const el = document.getElementById("env-block");
-  try {
-    const data = await fetch(`${API}/api/v1/compliance/environment`).then(r => r.json());
-    const status = (data.status || "UNKNOWN").toUpperCase();
-    const chip = status === "COMPLIANT" ? "chip-green" : "chip-red";
-    el.innerHTML = `
-      <div style="font-size:28px;font-weight:700">${Number(data.nh3StackPpm || 0).toFixed(1)} ppm</div>
-      <div class="score-meta">CPCB limit: ${Number(data.cpcbLimitPpm || 0).toFixed(1)} ppm</div>
-      <span class="chip ${chip}">${status}</span>
-      <div class="updated">Sample timestamp: ${data.timestamp || "-"}</div>
-    `;
-  } catch (e) {
-    el.innerHTML = `<div class="loading">Environment unavailable: ${e.message}</div>`;
-  }
-}
+    <section class="grid">
+      <div class="card full">
+        <h2>Overall Compliance Score</h2>
+        <p class="sub">Live score from <code>/api/v1/compliance/ocs-score</code></p>
+        <div id="ocsWrap">Loading OCS score...</div>
+        <div class="chart-wrap"><canvas id="ocsChart"></canvas></div>
+      </div>
 
-async function loadInspections() {
-  const el = document.getElementById("inspection-block");
-  try {
-    const rows = await fetch(`${API}/api/v1/compliance/inspections`).then(r => r.json());
-    latestInspections = Array.isArray(rows) ? rows : [];
-    const html = rows.map(r => {
-      const status = (r.status || "ON_TRACK").toUpperCase();
-      const cls = status === "OVERDUE" ? "chip-red" : status === "DUE_SOON" ? "chip-yellow" : "chip-green";
+      <div class="card">
+        <h2>Inspection Due Dates</h2>
+        <p class="sub">Static demo data - live integration Sprint 5</p>
+        <div id="inspectionWrap"></div>
+      </div>
+
+      <div class="card">
+        <h2>Environmental Parameters</h2>
+        <p class="sub">Static demo data - CEMS integration Sprint 4</p>
+        <div class="metric-grid" id="environmentWrap"></div>
+      </div>
+
+      <div class="card full">
+        <h2>Statutory Actions</h2>
+        <p class="sub">Form 7 preview modal and CSV export from current demo values</p>
+        <div class="btn-row">
+          <button id="form7Button">Generate Form 7</button>
+          <button id="exportButton" class="secondary">Export Monthly Report</button>
+        </div>
+        <div class="metric-grid">
+          <div class="metric">
+            <div class="label">Submission State</div>
+            <div class="value">DRAFT</div>
+          </div>
+          <div class="metric">
+            <div class="label">Reporting Period</div>
+            <div class="value" id="reportingPeriod">Current Month</div>
+          </div>
+          <div class="metric">
+            <div class="label">Data Mode</div>
+            <div class="value">DEMO DATA</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;">
+        <h2 style="margin:0;font-size:20px;">Form 7 Preview</h2>
+        <button id="closeModal" class="secondary" style="padding:10px 14px;">Close</button>
+      </div>
+      <pre id="modalContent">{}</pre>
+    </div>
+  </div>
+
+  <footer>
+    ARGUS - Event-Driven Industrial IoT Monitoring Platform |
+    AI outputs are advisory only - not control instructions |
+    Rule engine has final authority on all CRITICAL alerts
+  </footer>
+
+  <script>
+    let ocsChart = null;
+    let latestOcs = null;
+
+    const inspections = [
+      { machine: "COMP-01", last: "2026-03-01", next: "2026-03-24", status: "DUE_SOON" },
+      { machine: "PUMP-01", last: "2026-03-08", next: "2026-04-07", status: "ON_TRACK" },
+      { machine: "REACT-01", last: "2026-03-10", next: "2026-04-09", status: "ON_TRACK" },
+      { machine: "TURB-01", last: "2026-03-14", next: "2026-03-27", status: "DUE_SOON" },
+      { machine: "BOILER-01", last: "2026-03-03", next: "2026-04-02", status: "ON_TRACK" }
+    ];
+
+    const environmental = [
+      { label: "NH3 Stack", value: "18 mg/Nm3", status: "GREEN" },
+      { label: "CPCB Limit", value: "50 mg/Nm3", status: "GREEN" },
+      { label: "CEMS Status", value: "Sprint 4", status: "AMBER" }
+    ];
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    async function fetchJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(url + " -> " + response.status);
+      }
+      return response.json();
+    }
+
+    function bar(label, value, color) {
       return `
-        <tr>
-          <td>${r.machine}</td>
-          <td>${r.lastInspected}</td>
-          <td>${r.nextDue}</td>
-          <td><span class="chip ${cls}">${status}</span></td>
-        </tr>
+        <div>
+          <div class="bar-label"><span>${escapeHtml(label)}</span><strong>${Number(value).toFixed(1)}%</strong></div>
+          <div class="track"><div class="fill" style="width:${Number(value)}%;background:${color};"></div></div>
+        </div>
       `;
-    }).join("");
-    el.innerHTML = `
-      <table class="table">
-        <thead>
-          <tr><th>Machine</th><th>Last Inspected</th><th>Next Due</th><th>Status</th></tr>
-        </thead>
-        <tbody>${html}</tbody>
-      </table>
-      <div class="updated">Updated: ${new Date().toLocaleTimeString("en-IN")}</div>
-    `;
-  } catch (e) {
-    el.innerHTML = `<div class="loading">Inspection table unavailable: ${e.message}</div>`;
-  }
-  drawComplianceCharts();
-}
+    }
 
-function drawComplianceCharts() {
-  const compCanvas = document.getElementById("componentMixChart");
-  const inspCanvas = document.getElementById("inspectionMixChart");
-  if (!compCanvas || !inspCanvas) return;
+    function drawOcsChart(data) {
+      const canvas = document.getElementById("ocsChart");
+      if (ocsChart) {
+        ocsChart.destroy();
+      }
 
-  if (componentMixChart) { componentMixChart.destroy(); componentMixChart = null; }
-  if (inspectionMixChart) { inspectionMixChart.destroy(); inspectionMixChart = null; }
-
-  if (latestSummary) {
-    const machine = Number(latestSummary.machineCompliance || 0);
-    const human = Number(latestSummary.humanCompliance || 0);
-    const env = Number(latestSummary.environmentCompliance || 0);
-
-    componentMixChart = new Chart(compCanvas.getContext("2d"), {
-      type: "doughnut",
-      data: {
-        labels: ["Machine", "Human", "Environment"],
-        datasets: [{
-          data: [machine, human, env],
-          backgroundColor: ["#58a6ff", "#e3b341", "#3fb950"],
-          borderColor: "#161b22",
-          borderWidth: 2
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: "#8b949e", font: { size: 11 } } }
+      ocsChart = new Chart(canvas.getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: ["Machine", "Human", "Environmental"],
+          datasets: [{
+            label: "Compliance %",
+            data: [
+              Number(data.machineCompliance || 0),
+              Number(data.humanCompliance || 0),
+              Number(data.environmentalCompliance || 0)
+            ],
+            backgroundColor: ["#2563eb", "#16a34a", "#d97706"],
+            borderRadius: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              min: 0,
+              max: 100,
+              ticks: { color: "#64748b" },
+              grid: { color: "#e2e8f0" }
+            },
+            x: {
+              ticks: { color: "#64748b" },
+              grid: { display: false }
+            }
+          }
         }
+      });
+    }
+
+    function renderInspections() {
+      document.getElementById("inspectionWrap").innerHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Machine</th>
+              <th>Last Inspection</th>
+              <th>Next Due</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${inspections.map(item => `
+              <tr class="${item.status === "DUE_SOON" ? "due-soon" : ""}">
+                <td>${escapeHtml(item.machine)}</td>
+                <td>${escapeHtml(item.last)}</td>
+                <td>${escapeHtml(item.next)}</td>
+                <td>${escapeHtml(item.status)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderEnvironmental() {
+      document.getElementById("environmentWrap").innerHTML = environmental.map(item => `
+        <div class="metric">
+          <div class="label">${escapeHtml(item.label)}</div>
+          <div class="value ${item.status === "GREEN" ? "green" : "amber"}">${escapeHtml(item.value)}</div>
+        </div>
+      `).join("");
+    }
+
+    function openModal(payload) {
+      document.getElementById("modalContent").textContent = JSON.stringify(payload, null, 2);
+      document.getElementById("modalBackdrop").style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("modalBackdrop").style.display = "none";
+    }
+
+    function exportCsv() {
+      const now = new Date();
+      const rows = [
+        ["kpi", "value"],
+        ["overall_compliance_score", latestOcs?.overallComplianceScore ?? 0],
+        ["machine_compliance", latestOcs?.machineCompliance ?? 0],
+        ["human_compliance", latestOcs?.humanCompliance ?? 0],
+        ["environmental_compliance", latestOcs?.environmentalCompliance ?? 0],
+        ["period", latestOcs?.period ?? "last_30_days"],
+        ["generated_at", now.toISOString()]
+      ];
+      const csv = rows.map(row => row.join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "argus-monthly-compliance-report.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function refreshCompliance() {
+      try {
+        latestOcs = await fetchJson("/api/v1/compliance/ocs-score");
+        const score = Number(latestOcs.overallComplianceScore || 0);
+        document.getElementById("ocsWrap").innerHTML = `
+          <div class="score-row">
+            <div>
+              <div class="score">${score.toFixed(1)}%</div>
+              <div class="status-chip ${String(latestOcs.status).toUpperCase() === "GREEN" ? "green" : "amber"}">${escapeHtml(latestOcs.status)}</div>
+            </div>
+            <div>
+              <div class="bars">
+                ${bar("Machine", latestOcs.machineCompliance, "#2563eb")}
+                ${bar("Human", latestOcs.humanCompliance, "#16a34a")}
+                ${bar("Environmental", latestOcs.environmentalCompliance, "#d97706")}
+              </div>
+              <div style="margin-top:14px;color:#64748b;font-size:13px;">${escapeHtml(latestOcs.formula)}</div>
+              <div style="margin-top:6px;color:#64748b;font-size:13px;">${escapeHtml(latestOcs.note || "Demo data")}</div>
+            </div>
+          </div>
+        `;
+        drawOcsChart(latestOcs);
+        document.getElementById("reportingPeriod").textContent = (latestOcs.period || "last_30_days").replaceAll("_", " ");
+        document.getElementById("lastUpdated").textContent = "Last updated: " + new Date().toLocaleString("en-IN");
+      } catch (error) {
+        document.getElementById("ocsWrap").textContent = "Compliance dashboard unavailable: " + error.message;
+        document.getElementById("lastUpdated").textContent = "Compliance dashboard unavailable: " + error.message;
       }
+    }
+
+    document.getElementById("form7Button").addEventListener("click", () => {
+      const payload = {
+        form: "Form 7",
+        generatedAt: new Date().toISOString(),
+        plant: "ARGUS Demo Plant",
+        reportingPeriod: latestOcs?.period || "last_30_days",
+        overallComplianceScore: latestOcs?.overallComplianceScore ?? 0,
+        machineCompliance: latestOcs?.machineCompliance ?? 0,
+        humanCompliance: latestOcs?.humanCompliance ?? 0,
+        environmentalCompliance: latestOcs?.environmentalCompliance ?? 0,
+        note: "Static demo data - live legal integration Sprint 5"
+      };
+      openModal(payload);
     });
-  }
 
-  const statuses = { OVERDUE: 0, DUE_SOON: 0, ON_TRACK: 0 };
-  (latestInspections || []).forEach(r => {
-    const s = (r.status || "ON_TRACK").toUpperCase();
-    if (Object.prototype.hasOwnProperty.call(statuses, s)) {
-      statuses[s] += 1;
-    } else {
-      statuses.ON_TRACK += 1;
-    }
-  });
+    document.getElementById("exportButton").addEventListener("click", exportCsv);
+    document.getElementById("closeModal").addEventListener("click", closeModal);
+    document.getElementById("modalBackdrop").addEventListener("click", event => {
+      if (event.target.id === "modalBackdrop") closeModal();
+    });
 
-  inspectionMixChart = new Chart(inspCanvas.getContext("2d"), {
-    type: "pie",
-    data: {
-      labels: ["Overdue", "Due Soon", "On Track"],
-      datasets: [{
-        data: [statuses.OVERDUE, statuses.DUE_SOON, statuses.ON_TRACK],
-        backgroundColor: ["#f85149", "#e3b341", "#3fb950"],
-        borderColor: "#161b22",
-        borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: "#8b949e", font: { size: 11 } } }
-      }
-    }
-  });
-}
-
-async function generateForm7() {
-  const output = document.getElementById("artifact-output");
-  try {
-    const data = await fetch(`${API}/api/compliance/form7`, { method: "POST" }).then(r => r.json());
-    output.textContent = JSON.stringify(data, null, 2);
-  } catch (e) {
-    output.textContent = `Form 7 generation failed: ${e.message}`;
-  }
-}
-
-async function exportMonthly() {
-  const output = document.getElementById("artifact-output");
-  try {
-    const csv = await fetch(`${API}/api/compliance/monthly-report`).then(r => r.text());
-    output.textContent = csv;
-  } catch (e) {
-    output.textContent = `Monthly export failed: ${e.message}`;
-  }
-}
-
-document.getElementById("btn-form7").addEventListener("click", generateForm7);
-document.getElementById("btn-monthly").addEventListener("click", exportMonthly);
-
-async function refresh() {
-  await Promise.all([loadSummary(), loadEnvironment(), loadInspections()]);
-}
-
-refresh();
-setInterval(refresh, 120000);
-</script>
+    renderInspections();
+    renderEnvironmental();
+    refreshCompliance();
+    setInterval(refreshCompliance, 60000);
+  </script>
 </body>
 </html>

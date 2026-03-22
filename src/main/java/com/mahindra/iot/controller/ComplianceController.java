@@ -17,6 +17,27 @@ import java.util.Map;
 @Tag(name = "Compliance Dashboard API", description = "Compliance placeholders for Sprint 2")
 public class ComplianceController {
 
+    @GetMapping("/api/v1/compliance/ocs-score")
+    @Operation(summary = "Overall compliance score demo snapshot")
+    public ResponseEntity<Map<String, Object>> getOcsScore() {
+        double machine = 96.0;
+        double human = 93.5;
+        double environmental = 92.8;
+        double overall = machine * 0.35 + human * 0.35 + environmental * 0.30;
+
+        return ResponseEntity.ok(Map.of(
+                "overallComplianceScore", Math.round(overall * 10.0) / 10.0,
+                "machineCompliance", machine,
+                "humanCompliance", human,
+                "environmentalCompliance", environmental,
+                "status", "GREEN",
+                "period", "last_30_days",
+                "formula", "OCS = Machine*0.35 + Human*0.35 + Env*0.30",
+                "dataMode", "demo_data",
+                "note", "Static demo data for dashboard wiring. Live compliance integration starts in Sprint 5."
+        ));
+    }
+
     @GetMapping("/api/v1/compliance/summary")
     @Operation(summary = "Compliance weighted summary")
     public ResponseEntity<Map<String, Object>> getSummary() {
