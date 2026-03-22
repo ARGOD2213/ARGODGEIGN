@@ -1,0 +1,23 @@
+Track 4: Combined Zone Risk Score
+Files added:
+  src/main/java/com/mahindra/iot/service/ZoneRiskScoringService.java
+  src/main/java/com/mahindra/iot/controller/ZoneRiskController.java
+Files modified:
+  src/main/resources/static/plant.html (zone risk grid panel)
+  src/main/resources/static/safety.html (zone risk badge on NH3 rows)
+Endpoints added:
+  GET /api/v1/zones/risk
+  GET /api/v1/zones/risk/{zone}?wbgt=&nh3Ppm=&activeCritical=&activeWarning=
+Scoring formula:
+  WBGT pts:    >35=33, >32=25, >30=18, >28=12, >26=6, else=0
+  NH3 pts:     >25=33, >15=20, >10=12, >5=5,   else=0
+  Machine pts: min(34, CRITICAL*17 + WARNING*5)
+  Total 0-100. HIGH>=70, MEDIUM>=40, LOW<40
+Standards basis: ISO 7933 (WBGT), ACGIH TLV-TWA (NH3)
+ADR compliance:
+  ADR-001: pure analysis, no threshold evaluation
+  ADR-002: read-only, no OT writes
+  ADR-003: no LLM in this feature
+  ADR-004: no DynamoDB writes, no raw sensor storage
+Demo data: synthetic zone inputs — live integration Sprint 5
+mvn package: PASS

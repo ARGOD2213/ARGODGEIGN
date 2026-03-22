@@ -491,6 +491,7 @@
         const fill = Math.min((twa / 25) * 100, 100);
         const fillColor = ppm > 25 ? "var(--critical)" : ppm > 10 ? "var(--warning)" : "var(--normal)";
         const evacClass = ppm > 10 ? "evacuation red" : "evacuation";
+        const safeId = encodeURIComponent(zone.zone);
         return `
           <div class="zone-card">
             <div class="zone-head">
@@ -503,6 +504,7 @@
             <div class="zone-meta">
               <span>TWA 8h: ${twa.toFixed(1)} ppm</span>
               <span class="dispersion">${arrow(zone.nh3DispersionDirection)} ${zone.nh3DispersionDirection}</span>
+              <span id="zoneRiskBadge-${safeId}" style="margin-left:8px;font-size:11px;color:#94a3b8;">Loading risk...</span>
             </div>
             <div class="zone-meta">
               <span>Wind: ${Number(zone.windDeg || 0).toFixed(1)} deg</span>
@@ -511,6 +513,37 @@
           </div>
         `;
       }).join("");
+
+      enrichNh3RiskBadges(zones);
+    }
+
+    async function loadZoneRiskBadge(zone, wbgt, nh3Ppm, activeCritical, activeWarning) {
+      try {
+        const params = new URLSearchParams({ wbgt, nh3Ppm, activeCritical, activeWarning });
+        const r = await fetch(`/api/v1/zones/risk/${encodeURIComponent(zone)}?${params}`);
+        const d = await r.json();
+        return `
+          <span style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:${
+            d.riskLevel==='HIGH'   ? '#450a0a' :
+            d.riskLevel==='MEDIUM' ? '#431407' : '#14532d'};color:${
+            d.riskLevel==='HIGH'   ? '#f87171' :
+            d.riskLevel==='MEDIUM' ? '#fbbf24' : '#4ade80'};">
+            Zone Risk: ${d.riskScore}/100 ${d.riskLevel}
+          </span>`;
+      } catch {
+        return '';
+      }
+    }
+
+    async function enrichNh3RiskBadges(zones) {
+      await Promise.all(zones.map(async zone => {
+        const safeId = encodeURIComponent(zone.zone);
+        const element = document.getElementById(`zoneRiskBadge-${safeId}`);
+        if (!element) return;
+        // For this demo, we pass zone ppm as NH3 and a fixed WBGT baseline; alert counts are not derived from this endpoint yet.
+        const badge = await loadZoneRiskBadge(zone.zone, 27.0, Number(zone.ppm || 0), 0, 0);
+        element.outerHTML = badge || '';
+      }));
     }
 
     function renderFatigueScore(data) {

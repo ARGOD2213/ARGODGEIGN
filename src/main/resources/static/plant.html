@@ -193,6 +193,33 @@
       font-weight: 700;
     }
 
+    .zone-risk-grid{display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:12px;margin-bottom:24px}
+    .zone-card{background:#1e293b;border-radius:12px;padding:16px;
+      border-top:4px solid #475569}
+    .zone-card.HIGH{border-top-color:#dc2626}
+    .zone-card.MEDIUM{border-top-color:#d97706}
+    .zone-card.LOW{border-top-color:#16a34a}
+    .zone-name{font-size:12px;font-weight:700;color:#94a3b8;
+      text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+    .zone-score{font-size:36px;font-weight:800;line-height:1;margin-bottom:4px}
+    .zone-score.HIGH{color:#f87171}
+    .zone-score.MEDIUM{color:#fbbf24}
+    .zone-score.LOW{color:#4ade80}
+    .zone-level{font-size:11px;font-weight:700;padding:2px 8px;
+      border-radius:10px;display:inline-block;margin-bottom:10px}
+    .zone-level.HIGH{background:#450a0a;color:#f87171}
+    .zone-level.MEDIUM{background:#431407;color:#fbbf24}
+    .zone-level.LOW{background:#14532d;color:#4ade80}
+    .contrib-row{display:flex;justify-content:space-between;
+      font-size:11px;color:#64748b;margin-bottom:3px}
+    .contrib-bar{height:4px;background:#334155;border-radius:2px;
+      margin-bottom:6px}
+    .contrib-fill{height:4px;border-radius:2px;background:#3b82f6;transition:width .4s}
+    .zone-rec{font-size:11px;color:#94a3b8;margin-top:8px;
+      line-height:1.4;border-top:1px solid #334155;padding-top:8px}
+
     .cascade-chain {
       margin-top: 12px;
       display: flex;
@@ -297,6 +324,15 @@
         <h2>Cascade Risk Indicator</h2>
         <p class="sub">Compressor alert chain impact</p>
         <div id="cascadeWrap">Evaluating cascade dependencies...</div>
+      </div>
+
+      <div class="card full">
+        <h2>Zone Risk Index</h2>
+        <p class="sub">Combined score: WBGT heat stress + NH₃ exposure + active machine alerts.</p>
+        <p style="font-size:12px;color:#64748b;margin-bottom:12px;">HIGH ≥ 70 | MEDIUM ≥ 40 | LOW &lt; 40</p>
+        <div class="zone-risk-grid" id="zone-risk-grid">
+          <div style="color:#94a3b8;font-size:13px">Loading...</div>
+        </div>
       </div>
 
       <div class="card full">
@@ -459,6 +495,51 @@
       `;
     }
 
+    async function loadZoneRisk() {
+      try {
+        const r = await fetch('/api/v1/zones/risk');
+        const d = await r.json();
+        const grid = document.getElementById('zone-risk-grid');
+        if (!d.zones || d.zones.length === 0) {
+          grid.innerHTML = '<div style="color:#94a3b8;font-size:13px">No zone data.</div>';
+          return;
+        }
+        grid.innerHTML = d.zones.map(z => `
+          <div class="zone-card ${z.riskLevel}">
+            <div class="zone-name">${z.zone.replace(/_/g,' ')}</div>
+            <div class="zone-score ${z.riskLevel}">${z.riskScore}</div>
+            <span class="zone-level ${z.riskLevel}">${z.riskLevel}</span>
+
+            <div class="contrib-row">
+              <span>🌡 WBGT</span><span>${z.wbgtContribution} pts</span>
+            </div>
+            <div class="contrib-bar">
+              <div class="contrib-fill" style="width:${Math.round(z.wbgtContribution/33*100)}%;background:#f59e0b"></div>
+            </div>
+
+            <div class="contrib-row">
+              <span>☁ NH₃</span><span>${z.nh3Contribution} pts</span>
+            </div>
+            <div class="contrib-bar">
+              <div class="contrib-fill" style="width:${Math.round(z.nh3Contribution/33*100)}%;background:#8b5cf6"></div>
+            </div>
+
+            <div class="contrib-row">
+              <span>⚙ Machines</span><span>${z.machineContribution} pts</span>
+            </div>
+            <div class="contrib-bar">
+              <div class="contrib-fill" style="width:${Math.round(z.machineContribution/34*100)}%;background:#3b82f6"></div>
+            </div>
+
+            <div class="zone-rec">${z.recommendation}</div>
+          </div>
+        `).join('');
+      } catch (e) {
+        document.getElementById('zone-risk-grid').innerHTML =
+          '<div style="color:#94a3b8;font-size:13px">Zone risk data unavailable.</div>';
+      }
+    }
+
     function summaryCard(label, value, className, suffix = "") {
       return `
         <div class="metric">
@@ -548,6 +629,9 @@
 
     refreshPlant();
     setInterval(refreshPlant, 30000);
+
+    loadZoneRisk();
+    setInterval(loadZoneRisk, 30000);
   </script>
 </body>
 </html>
