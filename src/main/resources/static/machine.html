@@ -1,735 +1,691 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ARGODREIGN — Machine Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARGUS Machine Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0d1117;
-      color: #e6edf3;
-      min-height: 100vh;
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --line: #dbe4ee;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --critical: #dc2626;
+      --warning: #d97706;
+      --normal: #16a34a;
+      --header: #1e293b;
     }
 
-    /* ── TOP BAR ── */
-    .topbar {
-      background: #161b22;
-      border-bottom: 1px solid #30363d;
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #1e293b;
       padding: 12px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-    }
-    .topbar h1 {
-      font-size: 16px;
-      font-weight: 700;
-      color: #58a6ff;
-      letter-spacing: 1px;
-    }
-    .platform-status {
-      display: flex;
       gap: 16px;
-      font-size: 12px;
+      flex-wrap: wrap;
     }
-    .status-chip {
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-weight: 600;
-    }
-    .chip-green  { background:#0d4429; color:#3fb950; border:1px solid #238636; }
-    .chip-yellow { background:#2d2a00; color:#e3b341; border:1px solid #9e6a03; }
-    .chip-red    { background:#4d0000; color:#f85149; border:1px solid #da3633; }
-    .chip-blue   { background:#0c2d6b; color:#58a6ff; border:1px solid #1f6feb; }
 
-    /* ── ADVISORY BANNER ── */
-    .advisory-banner {
-      background: #1a0a00;
-      border-bottom: 2px solid #d29922;
-      padding: 8px 24px;
-      font-size: 12px;
+    header span {
+      color: white;
       font-weight: 700;
-      color: #e3b341;
-      text-align: center;
-      letter-spacing: 0.5px;
+      font-size: 18px;
     }
 
-    /* ── MAIN LAYOUT ── */
-    .main { display: flex; height: calc(100vh - 88px); }
-
-    /* ── LEFT PANEL: MACHINE GRID ── */
-    .left-panel {
-      width: 280px;
-      min-width: 280px;
-      background: #161b22;
-      border-right: 1px solid #30363d;
-      overflow-y: auto;
-      padding: 16px 12px;
-    }
-    .left-panel h2 {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #8b949e;
-      margin-bottom: 12px;
-      padding: 0 4px;
-    }
-    .machine-card {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-bottom: 4px;
-      border: 1px solid transparent;
-      transition: all 0.15s;
-    }
-    .machine-card:hover { background: #21262d; }
-    .machine-card.selected {
-      background: #21262d;
-      border-color: #58a6ff;
-    }
-    .rag-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    .rag-CRITICAL { background: #f85149; box-shadow: 0 0 6px #f85149; }
-    .rag-WARNING  { background: #e3b341; box-shadow: 0 0 6px #e3b341; }
-    .rag-NORMAL   { background: #3fb950; box-shadow: 0 0 6px #3fb950; }
-    .machine-info { flex: 1; min-width: 0; }
-    .machine-id {
-      font-size: 13px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .machine-class {
-      font-size: 11px;
-      color: #8b949e;
-      text-transform: uppercase;
-    }
-    .sev-badge {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-    .sev-CRITICAL { background:#4d0000; color:#f85149; }
-    .sev-WARNING  { background:#2d2a00; color:#e3b341; }
-    .sev-NORMAL   { background:#0d4429; color:#3fb950; }
-
-    /* ── RIGHT PANEL ── */
-    .right-panel {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .panel-card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      padding: 18px 20px;
-    }
-    .panel-card h3 {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #8b949e;
-      margin-bottom: 14px;
-    }
-
-    /* ── OEE GAUGES ── */
-    .oee-row {
+    nav {
       display: flex;
       gap: 16px;
       flex-wrap: wrap;
     }
-    .oee-gauge {
-      flex: 1;
-      min-width: 100px;
-      text-align: center;
-    }
-    .oee-value {
-      font-size: 32px;
-      font-weight: 700;
-      line-height: 1;
-    }
-    .oee-label {
-      font-size: 11px;
-      color: #8b949e;
-      margin-top: 4px;
-      text-transform: uppercase;
+
+    nav a {
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 14px;
     }
 
-    /* ── TREND CHART ── */
-    .chart-container { position: relative; height: 200px; }
+    nav a.active {
+      color: #ffffff;
+    }
 
-    /* ── ALERTS TABLE ── */
-    .alerts-table {
-      width: 100%;
-      border-collapse: collapse;
+    .page {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .hero p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .stamp {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+
+    .card .sub {
+      margin: 0 0 16px;
+      color: var(--muted);
       font-size: 13px;
     }
-    .alerts-table th {
-      text-align: left;
-      padding: 8px 10px;
-      border-bottom: 1px solid #30363d;
-      font-size: 11px;
-      color: #8b949e;
-      text-transform: uppercase;
-    }
-    .alerts-table td {
-      padding: 8px 10px;
-      border-bottom: 1px solid #21262d;
-    }
-    .alerts-table tr:hover td { background: #21262d; }
 
-    /* ── AI ADVISORY PANEL ── */
-    .advisory-panel {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      overflow: hidden;
+    .machine-list,
+    .alerts,
+    .legend-list {
+      display: grid;
+      gap: 12px;
     }
-    .advisory-header {
-      background: #1a0a00;
-      border-bottom: 1px solid #9e6a03;
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+
+    .machine-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
     }
-    .advisory-header span {
-      font-size: 11px;
-      font-weight: 700;
-      color: #e3b341;
-      letter-spacing: 0.5px;
+
+    .machine-card:hover {
+      transform: translateY(-1px);
+      border-color: #bfdbfe;
     }
-    .conf-badge {
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 4px;
+
+    .machine-card.active {
+      border-color: var(--accent);
+      background: #eff6ff;
     }
-    .conf-HIGH   { background:#0d4429; color:#3fb950; }
-    .conf-MEDIUM { background:#2d2a00; color:#e3b341; }
-    .conf-LOW    { background:#4d0000; color:#f85149; }
-    .advisory-body { padding: 16px; }
+
+    .machine-head,
+    .metric-row,
+    .alert-row,
+    .legend-row,
     .advisory-meta {
       display: flex;
-      gap: 16px;
-      margin-bottom: 10px;
-      font-size: 11px;
-      color: #8b949e;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
     }
-    .advisory-text {
+
+    .machine-id {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .machine-class,
+    .muted {
+      color: var(--muted);
       font-size: 13px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .green { background: #dcfce7; color: var(--normal); }
+    .amber { background: #fef3c7; color: var(--warning); }
+    .red { background: #fee2e2; color: var(--critical); }
+    .blue { background: #dbeafe; color: var(--accent); }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .detail-grid .full {
+      grid-column: 1 / -1;
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric-box {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: #f8fafc;
+    }
+
+    .metric-box .label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .metric-box .value {
+      margin-top: 6px;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .chart-wrap {
+      height: 320px;
+      margin-top: 18px;
+    }
+
+    .legend-item,
+    .alert-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: #f8fafc;
+    }
+
+    .alert-card.red-border {
+      border-color: #fecaca;
+      background: #fef2f2;
+    }
+
+    .alert-card.amber-border {
+      border-color: #fde68a;
+      background: #fffbeb;
+    }
+
+    .advisory-panel {
+      border: 1px solid #cbd5e1;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .advisory-banner {
+      background: #eff6ff;
+      border-bottom: 1px solid #bfdbfe;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .advisory-body {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .advisory-copy {
       line-height: 1.6;
-      color: #e6edf3;
-    }
-    .advisory-footer {
-      padding: 10px 16px;
-      border-top: 1px solid #21262d;
-      font-size: 11px;
-      color: #8b949e;
-      font-style: italic;
+      font-size: 14px;
     }
 
-    /* ── EMPTY STATE ── */
-    .empty-state {
+    .empty {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    footer {
       text-align: center;
-      padding: 60px 20px;
-      color: #8b949e;
+      padding: 24px;
+      color: #94a3b8;
+      font-size: 12px;
     }
-    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
-    .empty-state p { font-size: 14px; }
 
-    /* ── LOADING ── */
-    .loading { color: #8b949e; font-size: 13px; padding: 20px 0; }
+    @media (max-width: 1080px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-grid,
+      .kpi-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .page {
+        padding: 16px;
+      }
+    }
   </style>
 </head>
 <body>
+  <header>
+    <span>ARGUS - Industrial IoT Platform</span>
+    <nav>
+      <a href="/index.html">Overview</a>
+      <a href="/machine.html" class="active">Machine</a>
+      <a href="/safety.html">Safety</a>
+      <a href="/plant.html">Plant</a>
+      <a href="/compliance.html">Compliance</a>
+    </nav>
+  </header>
 
-<!-- TOP BAR -->
-<div class="topbar">
-  <h1>⚙ ARGODREIGN — Machine Intelligence Dashboard</h1>
-  <div class="platform-status">
-    <span id="chip-platform" class="status-chip chip-blue">PLATFORM: LOADING</span>
-    <span id="chip-engine"   class="status-chip chip-blue">RULE ENGINE: –</span>
-    <span id="chip-llm"      class="status-chip chip-blue">LLM: –</span>
-    <span id="chip-ec2"      class="status-chip chip-blue">EC2: –</span>
-  </div>
-</div>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <h1>Machine Intelligence Dashboard</h1>
+        <p>Live machine cards, trend telemetry, sensor health, alerts, and AI advisory.</p>
+      </div>
+      <div class="stamp" id="lastUpdated">Loading machine telemetry...</div>
+    </section>
 
-<!-- MANDATORY ADVISORY BANNER -->
-<div class="advisory-banner">
-  ⚠ AI ADVISORY PLATFORM — All AI outputs are advisory only.
-  Rule engine has final authority on all CRITICAL alerts.
-  Not a control system. Human approval required for all actions.
-</div>
+    <section class="layout">
+      <aside class="card">
+        <h2>Machine Grid</h2>
+        <p class="sub">Live status from <code>/api/machines</code></p>
+        <div id="machineGrid" class="machine-list">Loading machines...</div>
+      </aside>
 
-<!-- MAIN -->
-<div class="main">
+      <section class="detail-grid" id="machineDetail">
+        <div class="card full">
+          <h2>Select a Machine</h2>
+          <p class="sub">Choose a machine to load its live trend, OEE, sensor health, alerts, and AI advisory.</p>
+          <div class="empty">No machine selected.</div>
+        </div>
+      </section>
+    </section>
+  </main>
 
-  <!-- LEFT: MACHINE GRID -->
-  <div class="left-panel">
-    <h2>Machine Status</h2>
-    <div id="machine-grid">
-      <div class="loading">Loading machines…</div>
-    </div>
-  </div>
+  <footer>
+    ARGUS - Event-Driven Industrial IoT Monitoring Platform |
+    AI outputs are advisory only - not control instructions |
+    Rule engine has final authority on all CRITICAL alerts
+  </footer>
 
-  <!-- RIGHT: DETAIL -->
-  <div class="right-panel" id="right-panel">
-    <div class="empty-state">
-      <div class="icon">🏭</div>
-      <p>Select a machine from the left panel to view details.</p>
-    </div>
-  </div>
+  <script>
+    let selectedMachineId = null;
+    let trendChart = null;
+    let machineCache = [];
 
-</div>
-
-<script>
-// ═══════════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════════
-const API = '';  // same origin — Spring Boot serves this file
-let selectedMachineId = null;
-let trendChart = null;
-let alertMixChart = null;
-
-// ═══════════════════════════════════════════════
-// PLATFORM STATUS
-// ═══════════════════════════════════════════════
-async function loadPlatformStatus() {
-  try {
-    const r = await fetch(`${API}/api/platform/status`);
-    const d = await r.json();
-
-    const set = (id, text, cls) => {
-      const el = document.getElementById(id);
-      el.textContent = text;
-      el.className = `status-chip ${cls}`;
-    };
-
-    const p = (d.platform||'UNKNOWN').toUpperCase();
-    set('chip-platform',
-      `PLATFORM: ${p}`,
-      p === 'RUNNING' ? 'chip-green' : p === 'DEGRADED' ? 'chip-yellow' : 'chip-red');
-
-    const re = (d.rule_engine || d.ruleEngine || 'UNKNOWN').toUpperCase();
-    set('chip-engine',
-      `RULE ENGINE: ${re}`,
-      re === 'ACTIVE' || re === 'LAMBDA' ? 'chip-green' : 'chip-red');
-
-    const llm = (d.llm||'UNKNOWN').toUpperCase();
-    set('chip-llm',
-      `LLM: ${llm}`,
-      llm === 'AVAILABLE' ? 'chip-green' : llm === 'RATE_LIMITED' ? 'chip-yellow' : 'chip-red');
-
-    const ec2 = (d.ec2 || d.ec2State || 'UNKNOWN').toUpperCase();
-    set('chip-ec2',
-      `EC2: ${ec2}`,
-      ec2 === 'RUNNING' ? 'chip-green' : 'chip-yellow');
-
-  } catch(e) {
-    ['chip-platform','chip-engine','chip-llm','chip-ec2'].forEach(id => {
-      document.getElementById(id).textContent = id.includes('platform')
-        ? 'PLATFORM: OFFLINE' : '–';
-      document.getElementById(id).className = 'status-chip chip-red';
-    });
-  }
-}
-
-// ═══════════════════════════════════════════════
-// MACHINE GRID
-// ═══════════════════════════════════════════════
-async function loadMachineGrid() {
-  const grid = document.getElementById('machine-grid');
-  try {
-    const r = await fetch(`${API}/api/machines`);
-    const machines = await r.json();
-
-    if (!machines || machines.length === 0) {
-      grid.innerHTML = '<div class="loading">No machines found.</div>';
-      return;
+    function badgeClass(status) {
+      const value = String(status || "").toUpperCase();
+      if (["CRITICAL", "BAD", "LOW"].includes(value)) return "badge red";
+      if (["WARNING", "SUSPECT", "CALIBRATION_DUE", "MEDIUM"].includes(value)) return "badge amber";
+      if (value === "HIGH") return "badge green";
+      return "badge green";
     }
 
-    grid.innerHTML = '';
-    machines.forEach(m => {
-      const sev = (m.currentSeverity || m.severity || m.status || 'NORMAL').toUpperCase();
-      const card = document.createElement('div');
-      card.className = 'machine-card';
-      card.dataset.id = m.machineId || m.deviceId || m.id;
-      card.innerHTML = `
-        <div class="rag-dot rag-${sev}"></div>
-        <div class="machine-info">
-          <div class="machine-id">${m.machineId || m.deviceId || m.id}</div>
-          <div class="machine-class">${m.machineClass || m.type || 'unknown'}</div>
-        </div>
-        <span class="sev-badge sev-${sev}">${sev}</span>
-      `;
-      card.addEventListener('click', () => selectMachine(card.dataset.id, card));
-      grid.appendChild(card);
-    });
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
 
-  } catch(e) {
-    grid.innerHTML = `<div class="loading">Error loading machines: ${e.message}</div>`;
-  }
-}
+    function oeeColor(value) {
+      if (value >= 85) return "var(--normal)";
+      if (value >= 70) return "var(--warning)";
+      return "var(--critical)";
+    }
 
-// ═══════════════════════════════════════════════
-// SELECT MACHINE
-// ═══════════════════════════════════════════════
-function selectMachine(machineId, cardEl) {
-  selectedMachineId = machineId;
-  document.querySelectorAll('.machine-card').forEach(c =>
-    c.classList.remove('selected'));
-  cardEl.classList.add('selected');
-  loadMachineDetail(machineId);
-}
+    function chartColor(index) {
+      const colors = ["#2563eb", "#0f766e", "#d97706", "#dc2626", "#7c3aed", "#0891b2"];
+      return colors[index % colors.length];
+    }
 
-// ═══════════════════════════════════════════════
-// MACHINE DETAIL
-// ═══════════════════════════════════════════════
-async function loadMachineDetail(machineId) {
-  const panel = document.getElementById('right-panel');
-  panel.innerHTML = '<div class="loading">Loading…</div>';
+    async function fetchJson(url) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(url + " -> " + response.status);
+      }
+      return response.json();
+    }
 
-  const [oeeData, alertsData, trendData] = await Promise.allSettled([
-    fetch(`${API}/api/kpi/oee/${machineId}`).then(r => r.json()),
-    fetch(`${API}/api/machines/${machineId}/alerts`).then(r => r.json()),
-    fetch(`${API}/api/machines/${machineId}/trend?hours=24`).then(r => r.json()),
-  ]);
+    async function loadMachineGrid() {
+      machineCache = await fetchJson("/api/machines");
+      const grid = document.getElementById("machineGrid");
+      grid.innerHTML = machineCache.map(machine => {
+        const id = machine.machineId || machine.deviceId || machine.id;
+        const status = (machine.status || "NORMAL").toUpperCase();
+        return `
+          <div class="machine-card ${selectedMachineId === id ? "active" : ""}" data-machine-id="${escapeHtml(id)}">
+            <div class="machine-head">
+              <div>
+                <div class="machine-id">${escapeHtml(id)}</div>
+                <div class="machine-class">${escapeHtml(machine.machineClass || "unknown")}</div>
+              </div>
+              <span class="${badgeClass(status)}">${escapeHtml(status)}</span>
+            </div>
+            <div class="muted" style="margin-top:10px;">Last sensor: ${escapeHtml(machine.lastSensorType || "-")}</div>
+          </div>
+        `;
+      }).join("");
 
-  const oee    = oeeData.status    === 'fulfilled' ? oeeData.value    : null;
-  const alerts = alertsData.status === 'fulfilled' ? alertsData.value : [];
-  const trend  = trendData.status  === 'fulfilled' ? trendData.value  : [];
+      document.querySelectorAll("[data-machine-id]").forEach(node => {
+        node.addEventListener("click", async () => {
+          selectedMachineId = node.getAttribute("data-machine-id");
+          await renderMachineGridOnly();
+          await loadMachineDetail(selectedMachineId);
+        });
+      });
 
-  // Find latest AI advisory from alerts
-  const latestWithAdvisory = (alerts || []).find(a => a.aiAdvisory || a.ai_advisory);
-  const advisory = latestWithAdvisory
-    ? (latestWithAdvisory.aiAdvisory || latestWithAdvisory.ai_advisory)
-    : null;
+      if (!selectedMachineId && machineCache.length > 0) {
+        selectedMachineId = machineCache[0].machineId || machineCache[0].deviceId || machineCache[0].id;
+      }
 
-  panel.innerHTML = `
-    ${renderOEE(machineId, oee)}
-    ${renderTrend(trend)}
-    ${renderAlertMix(alerts)}
-    ${renderAlerts(alerts)}
-    ${renderAdvisory(advisory)}
-  `;
-
-  // Draw chart after DOM insert
-  drawTrendChart(trend);
-  drawAlertMixChart(alerts);
-}
-
-// ═══════════════════════════════════════════════
-// OEE PANEL
-// ═══════════════════════════════════════════════
-function renderOEE(machineId, oee) {
-  const rawOee = oee
-    ? (oee.oeePercent != null ? oee.oeePercent : (oee.oee || 0) * 100)
-    : null;
-  const oeeVal  = rawOee != null ? Math.round(rawOee) : '–';
-  const avail   = oee ? Math.round((oee.availability || 0) * 100) : '–';
-  const perf    = oee ? Math.round((oee.performance || 0) * 100) : '–';
-  const qual    = oee ? Math.round((oee.quality || 0) * 100) : '–';
-  const oeeNum  = typeof oeeVal === 'number' ? oeeVal : 0;
-  const oeeColor = oeeNum >= 85 ? '#3fb950' : oeeNum >= 75 ? '#e3b341' : '#f85149';
-
-  return `
-  <div class="panel-card">
-    <h3>📊 ${machineId} — OEE & Performance</h3>
-    <div class="oee-row">
-      <div class="oee-gauge">
-        <div class="oee-value" style="color:${oeeColor}">${oeeVal}%</div>
-        <div class="oee-label">OEE</div>
-      </div>
-      <div class="oee-gauge">
-        <div class="oee-value" style="color:#58a6ff">${avail}%</div>
-        <div class="oee-label">Availability</div>
-      </div>
-      <div class="oee-gauge">
-        <div class="oee-value" style="color:#58a6ff">${perf}%</div>
-        <div class="oee-label">Performance</div>
-      </div>
-      <div class="oee-gauge">
-        <div class="oee-value" style="color:#58a6ff">${qual}%</div>
-        <div class="oee-label">Quality</div>
-      </div>
-    </div>
-    <div style="margin-top:12px;font-size:11px;color:#8b949e">
-      ${oeeNum >= 85 ? '✓ Within target (>85%)' :
-        oeeNum >= 75 ? '⚠ Below target — monitor' :
-        '✗ Critical — immediate review required'}
-    </div>
-  </div>`;
-}
-
-// ═══════════════════════════════════════════════
-// TREND CHART
-// ═══════════════════════════════════════════════
-function renderTrend(trend) {
-  return `
-  <div class="panel-card">
-    <h3>📈 24-Hour Sensor Trend</h3>
-    <div class="chart-container">
-      <canvas id="trendChart"></canvas>
-    </div>
-    ${(!trend || trend.length === 0)
-      ? '<div class="loading">No trend data available from Athena.</div>'
-      : ''}
-  </div>`;
-}
-
-function renderAlertMix(alerts) {
-  return `
-  <div class="panel-card">
-    <h3>🧭 Alert Severity Mix (Interactive)</h3>
-    <div class="chart-container">
-      <canvas id="alertMixChart"></canvas>
-    </div>
-    ${(!alerts || alerts.length === 0)
-      ? '<div class="loading">No alert mix available yet.</div>'
-      : ''}
-  </div>`;
-}
-
-function drawTrendChart(trend) {
-  const canvas = document.getElementById('trendChart');
-  if (!canvas || !trend || trend.length === 0) return;
-
-  if (trendChart) { trendChart.destroy(); trendChart = null; }
-
-  // Group by sensor_type
-  const bySensor = {};
-  trend.forEach(r => {
-    const k = r.sensorType || r.sensor_type || 'value';
-    const rawTs = r.timestamp || r.timestamp_epoch;
-    const tsNum = typeof rawTs === 'number'
-      ? (rawTs < 1e12 ? rawTs * 1000 : rawTs)
-      : Date.parse(rawTs);
-    if (!bySensor[k]) bySensor[k] = [];
-    bySensor[k].push({
-      x: Number.isFinite(tsNum) ? tsNum : Date.now(),
-      y: parseFloat(r.sensorValue || r.sensor_value || r.value || 0)
-    });
-  });
-
-  const colors = ['#58a6ff','#3fb950','#e3b341','#f85149','#d2a8ff','#ffa657'];
-  const datasets = Object.entries(bySensor).map(([k,pts], i) => ({
-    label: k,
-    data: pts,
-    borderColor: colors[i % colors.length],
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    pointRadius: 2,
-    tension: 0.3,
-  }));
-
-  trendChart = new Chart(canvas.getContext('2d'), {
-    type: 'line',
-    data: { datasets },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      parsing: false,
-      plugins: {
-        legend: {
-          labels: { color: '#8b949e', font: { size: 11 } }
-        }
-      },
-      scales: {
-        x: {
-          type: 'linear',
-          ticks: { color: '#8b949e', font: { size: 10 },
-            callback: v => {
-              const d = new Date(v < 1e12 ? v*1000 : v);
-              return d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-            }
-          },
-          grid: { color: '#21262d' }
-        },
-        y: {
-          ticks: { color: '#8b949e', font: { size: 10 } },
-          grid:  { color: '#21262d' }
-        }
+      if (selectedMachineId) {
+        await renderMachineGridOnly();
+        await loadMachineDetail(selectedMachineId);
       }
     }
-  });
-}
 
-function drawAlertMixChart(alerts) {
-  const canvas = document.getElementById('alertMixChart');
-  if (!canvas) return;
+    async function renderMachineGridOnly() {
+      const grid = document.getElementById("machineGrid");
+      grid.innerHTML = machineCache.map(machine => {
+        const id = machine.machineId || machine.deviceId || machine.id;
+        const status = (machine.status || "NORMAL").toUpperCase();
+        return `
+          <div class="machine-card ${selectedMachineId === id ? "active" : ""}" data-machine-id="${escapeHtml(id)}">
+            <div class="machine-head">
+              <div>
+                <div class="machine-id">${escapeHtml(id)}</div>
+                <div class="machine-class">${escapeHtml(machine.machineClass || "unknown")}</div>
+              </div>
+              <span class="${badgeClass(status)}">${escapeHtml(status)}</span>
+            </div>
+            <div class="muted" style="margin-top:10px;">Last sensor: ${escapeHtml(machine.lastSensorType || "-")}</div>
+          </div>
+        `;
+      }).join("");
 
-  if (alertMixChart) {
-    alertMixChart.destroy();
-    alertMixChart = null;
-  }
+      document.querySelectorAll("[data-machine-id]").forEach(node => {
+        node.addEventListener("click", async () => {
+          selectedMachineId = node.getAttribute("data-machine-id");
+          await renderMachineGridOnly();
+          await loadMachineDetail(selectedMachineId);
+        });
+      });
+    }
 
-  const list = Array.isArray(alerts) ? alerts : [];
-  const count = { CRITICAL: 0, WARNING: 0, NORMAL: 0 };
-  list.forEach(a => {
-    const sev = (a.severity || a.status || 'NORMAL').toUpperCase();
-    if (sev === 'CRITICAL') count.CRITICAL += 1;
-    else if (sev === 'WARNING') count.WARNING += 1;
-    else count.NORMAL += 1;
-  });
+    function renderTrendChart(trend) {
+      const canvas = document.getElementById("trendChart");
+      if (!canvas) return;
 
-  const values = [count.CRITICAL, count.WARNING, count.NORMAL];
-  const total = values.reduce((s, v) => s + v, 0);
-  if (total === 0) return;
+      if (trendChart) {
+        trendChart.destroy();
+        trendChart = null;
+      }
 
-  alertMixChart = new Chart(canvas.getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['CRITICAL', 'WARNING', 'NORMAL'],
-      datasets: [{
-        data: values,
-        backgroundColor: ['#f85149', '#e3b341', '#3fb950'],
-        borderColor: '#161b22',
-        borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          labels: { color: '#8b949e', font: { size: 11 } }
+      const grouped = {};
+      trend.forEach(point => {
+        const sensorType = point.sensorType || "UNKNOWN";
+        if (!grouped[sensorType]) grouped[sensorType] = [];
+        grouped[sensorType].push({
+          label: new Date(point.timestamp).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+          value: Number(point.value || 0)
+        });
+      });
+
+      const labelSet = [];
+      Object.values(grouped).forEach(values => {
+        values.forEach(item => {
+          if (!labelSet.includes(item.label)) {
+            labelSet.push(item.label);
+          }
+        });
+      });
+
+      const datasets = Object.entries(grouped).map(([sensorType, values], index) => {
+        const byLabel = Object.fromEntries(values.map(item => [item.label, item.value]));
+        return {
+          label: sensorType,
+          data: labelSet.map(label => byLabel[label] ?? null),
+          borderColor: chartColor(index),
+          backgroundColor: chartColor(index),
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          tension: 0.25
+        };
+      });
+
+      trendChart = new Chart(canvas.getContext("2d"), {
+        type: "line",
+        data: {
+          labels: labelSet,
+          datasets
         },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => {
-              const value = ctx.parsed;
-              const pct = total ? ((value * 100) / total).toFixed(1) : '0.0';
-              return `${ctx.label}: ${value} (${pct}%)`;
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              ticks: { color: "#64748b" },
+              grid: { color: "#e2e8f0" },
+              title: {
+                display: true,
+                text: "Timestamp (HH:mm)"
+              }
+            },
+            y: {
+              ticks: { color: "#64748b" },
+              grid: { color: "#e2e8f0" },
+              title: {
+                display: true,
+                text: "Sensor value (sensor-specific unit)"
+              }
             }
           }
         }
+      });
+    }
+
+    function renderSensorHealthLegend(health, trend) {
+      const lookup = {};
+      (health.sensors || []).forEach(sensor => {
+        lookup[sensor.sensorType] = sensor;
+      });
+
+      const sensorsFromTrend = [...new Set((trend || []).map(point => point.sensorType || "UNKNOWN"))];
+      return sensorsFromTrend.map((sensorType, index) => {
+        const sensor = lookup[sensorType] || { quality: "GOOD", message: "No quality issues detected" };
+        const icon = sensor.quality === "BAD" ? "!" : "OK";
+        return `
+          <div class="legend-item">
+            <div class="legend-row">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="display:inline-block;width:12px;height:12px;border-radius:999px;background:${chartColor(index)};"></span>
+                <strong>${escapeHtml(sensorType)}</strong>
+              </div>
+              <span class="${badgeClass(sensor.quality)}">${escapeHtml(icon + " " + sensor.quality)}</span>
+            </div>
+            <div class="muted" style="margin-top:8px;">${escapeHtml(sensor.message || "No message available")}</div>
+          </div>
+        `;
+      }).join("") || `<div class="empty">No sensor trend points available for legend rendering.</div>`;
+    }
+
+    function renderAlerts(alerts) {
+      return alerts.map(alert => {
+        const severity = (alert.status || "NORMAL").toUpperCase();
+        const cardClass = severity === "CRITICAL" ? "alert-card red-border"
+          : severity === "WARNING" ? "alert-card amber-border"
+          : "alert-card";
+        return `
+          <div class="${cardClass}">
+            <div class="alert-row">
+              <span class="${badgeClass(severity)}">${escapeHtml(severity)}</span>
+              <span class="muted">${escapeHtml(new Date(alert.timestamp).toLocaleString("en-IN"))}</span>
+            </div>
+            <div style="margin-top:10px;font-weight:700;">${escapeHtml(alert.sensorType || "UNKNOWN")} | ${Number(alert.value || 0).toFixed(2)}</div>
+            <div class="muted" style="margin-top:6px;">Machine: ${escapeHtml(alert.machineId || selectedMachineId || "-")}</div>
+          </div>
+        `;
+      }).join("") || `<div class="empty">No active alerts for the selected machine.</div>`;
+    }
+
+    function renderAdvisory(alerts) {
+      const advisory = (alerts || []).find(alert => alert.aiAdvisory)?.aiAdvisory;
+      if (!advisory) {
+        return `
+          <div class="advisory-panel">
+            <div class="advisory-banner">
+              <span>AI ADVISORY | Not a control action | Rule engine has final authority</span>
+              <span class="badge amber">NO LIVE ADVISORY</span>
+            </div>
+            <div class="advisory-body">
+              <div class="advisory-copy">No live AI advisory is currently attached to the latest alert stream for this machine.</div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="advisory-panel">
+          <div class="advisory-banner">
+            <span>AI ADVISORY | Not a control action | Rule engine has final authority</span>
+            <span class="${badgeClass(advisory.confidence || "LOW")}">${escapeHtml(advisory.confidence || "LOW")}</span>
+          </div>
+          <div class="advisory-body">
+            <div class="advisory-copy">${escapeHtml(advisory.summary || advisory.analysis || "No AI summary available.")}</div>
+            <div class="advisory-meta">
+              <span class="badge blue">Risk Score ${escapeHtml(advisory.riskScore ?? "N/A")}</span>
+              <span class="badge blue">Source ${escapeHtml(advisory.dataSource || advisory.consensus || "N/A")}</span>
+              <span class="badge blue">Valid ${escapeHtml(advisory.validFor || "N/A")}</span>
+            </div>
+            <div class="muted">Recommended action: ${escapeHtml(advisory.recommendedAction || "None provided")}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDetail(machine, trend, health, oee, alerts) {
+      const machineId = machine?.machineId || selectedMachineId || "-";
+      const detail = document.getElementById("machineDetail");
+      const oeeValue = Number(oee.oeePercent || 0);
+      detail.innerHTML = `
+        <div class="card full">
+          <h2>${escapeHtml(machineId)}</h2>
+          <p class="sub">Class: ${escapeHtml(machine?.machineClass || oee.machineClass || "unknown")} | Live source updates every 30 seconds</p>
+          <div class="kpi-row">
+            <div class="metric-box">
+              <div class="label">OEE</div>
+              <div class="value" style="color:${oeeColor(oeeValue)};">${oeeValue.toFixed(1)}%</div>
+            </div>
+            <div class="metric-box">
+              <div class="label">Availability</div>
+              <div class="value">${(Number(oee.availability || 0) * 100).toFixed(1)}%</div>
+            </div>
+            <div class="metric-box">
+              <div class="label">Performance</div>
+              <div class="value">${(Number(oee.performance || 0) * 100).toFixed(1)}%</div>
+            </div>
+            <div class="metric-box">
+              <div class="label">Quality</div>
+              <div class="value">${(Number(oee.quality || 0) * 100).toFixed(1)}%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card full">
+          <h2>Machine Trend</h2>
+          <p class="sub">Line chart from <code>/api/machines/${escapeHtml(machineId)}/trend?hours=24</code></p>
+          <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+        </div>
+
+        <div class="card">
+          <h2>Sensor Health Legend</h2>
+          <p class="sub">Sensor quality from <code>/api/v1/sensor/health/${escapeHtml(machineId)}</code></p>
+          <div class="legend-list">${renderSensorHealthLegend(health, trend)}</div>
+        </div>
+
+        <div class="card">
+          <h2>Recent Alerts</h2>
+          <p class="sub">Latest 10 alerts from <code>/api/machines/${escapeHtml(machineId)}/alerts?limit=10</code></p>
+          <div class="alerts">${renderAlerts(alerts)}</div>
+        </div>
+
+        <div class="card full">
+          <h2>AI Advisory</h2>
+          <p class="sub">Confidence and advisory body from <code>AiAdvisoryWrapper</code></p>
+          ${renderAdvisory(alerts)}
+        </div>
+      `;
+
+      renderTrendChart(trend);
+    }
+
+    async function loadMachineDetail(machineId) {
+      const machine = machineCache.find(item => (item.machineId || item.deviceId || item.id) === machineId) || {};
+      const [trend, health, oee, alerts] = await Promise.all([
+        fetchJson("/api/machines/" + encodeURIComponent(machineId) + "/trend?hours=24"),
+        fetchJson("/api/v1/sensor/health/" + encodeURIComponent(machineId)),
+        fetchJson("/api/kpi/oee/" + encodeURIComponent(machineId)),
+        fetchJson("/api/machines/" + encodeURIComponent(machineId) + "/alerts?limit=10")
+      ]);
+      renderDetail(machine, trend, health, oee, alerts);
+    }
+
+    async function refreshDashboard() {
+      try {
+        await loadMachineGrid();
+        document.getElementById("lastUpdated").textContent = "Last updated: " + new Date().toLocaleString("en-IN");
+      } catch (error) {
+        document.getElementById("lastUpdated").textContent = "Machine dashboard unavailable: " + error.message;
       }
     }
-  });
-}
 
-// ═══════════════════════════════════════════════
-// ALERTS TABLE
-// ═══════════════════════════════════════════════
-function renderAlerts(alerts) {
-  if (!alerts || alerts.length === 0) {
-    return `<div class="panel-card">
-      <h3>🚨 Active Alerts</h3>
-      <div class="loading">No alerts found for this machine.</div>
-    </div>`;
-  }
-
-  const rows = alerts.slice(0,10).map(a => {
-    const sev = (a.severity || a.status || 'NORMAL').toUpperCase();
-    const ts  = a.timestamp || a.createdAt || '–';
-    const tsStr = ts !== '–'
-      ? new Date(ts).toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})
-      : '–';
-    return `<tr>
-      <td><span class="sev-badge sev-${sev}">${sev}</span></td>
-      <td>${a.sensorType || a.sensor_type || '–'}</td>
-      <td>${a.value ?? a.sensorValue ?? '–'} ${a.unit || ''}</td>
-      <td style="color:#8b949e;font-size:12px">${tsStr}</td>
-      <td style="color:#8b949e;font-size:12px">${a.source || 'RULE_ENGINE'}</td>
-    </tr>`;
-  }).join('');
-
-  return `<div class="panel-card">
-    <h3>🚨 Active Alerts (Last 10)</h3>
-    <table class="alerts-table">
-      <thead><tr>
-        <th>Severity</th><th>Sensor</th>
-        <th>Value</th><th>Timestamp (IST)</th><th>Source</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>`;
-}
-
-// ═══════════════════════════════════════════════
-// AI ADVISORY PANEL
-// ═══════════════════════════════════════════════
-function renderAdvisory(advisory) {
-  if (!advisory) {
-    return `<div class="advisory-panel">
-      <div class="advisory-header">
-        <span>⚠ AI ADVISORY | Not a control action | Rule engine has final authority</span>
-        <span class="conf-badge conf-LOW">NO DATA</span>
-      </div>
-      <div class="advisory-body">
-        <div class="advisory-text" style="color:#8b949e">
-          No AI analysis available for this machine yet.
-          Trigger an alert via sensor ingest to generate analysis.
-        </div>
-      </div>
-    </div>`;
-  }
-
-  const conf = (advisory.confidence || 'LOW').toUpperCase();
-  const label = advisory.label || 'AI ADVISORY | Not a control action';
-  const analysis = advisory.analysis || advisory.text || '–';
-  const dataSource = advisory.dataSource || advisory.data_source || '–';
-  const validFor = advisory.validFor || advisory.valid_for || '30 minutes';
-  const calibrated = advisory.calibrated === true ? 'YES' : 'NO';
-
-  return `<div class="advisory-panel">
-    <div class="advisory-header">
-      <span>⚠ ${label}</span>
-      <span class="conf-badge conf-${conf}">CONFIDENCE: ${conf}</span>
-    </div>
-    <div class="advisory-body">
-      <div class="advisory-meta">
-        <span>📂 Source: ${dataSource}</span>
-        <span>⏱ Valid for: ${validFor}</span>
-        <span>🎯 Calibrated: ${calibrated}</span>
-      </div>
-      <div class="advisory-text">${analysis}</div>
-    </div>
-    <div class="advisory-footer">
-      This analysis is generated by AI and is advisory only.
-      Rule engine severity takes precedence.
-      Do not use as a control instruction.
-    </div>
-  </div>`;
-}
-
-// ═══════════════════════════════════════════════
-// AUTO REFRESH
-// ═══════════════════════════════════════════════
-function startAutoRefresh() {
-  // Platform status: every 30 seconds
-  setInterval(loadPlatformStatus, 30000);
-  // Machine grid: every 60 seconds
-  setInterval(loadMachineGrid, 60000);
-  // Selected machine detail: every 60 seconds
-  setInterval(() => {
-    if (selectedMachineId) loadMachineDetail(selectedMachineId);
-  }, 60000);
-}
-
-// ═══════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════
-(async () => {
-  await Promise.all([loadPlatformStatus(), loadMachineGrid()]);
-  startAutoRefresh();
-})();
-</script>
+    refreshDashboard();
+    setInterval(refreshDashboard, 30000);
+  </script>
 </body>
 </html>
