@@ -334,6 +334,8 @@
 
       <div id="sil-status-panel"></div>
 
+      <div id="sprint8-readiness-panel"></div>
+
       <div class="card">
         <h2>Inspection Due Dates</h2>
         <p class="sub">Static demo data - live integration Sprint 5</p>
@@ -603,6 +605,7 @@
     renderInspections();
     renderEnvironmental();
     loadSilStatus();
+    loadSprint8Readiness();
     refreshCompliance();
     setInterval(refreshCompliance, 60000);
 
@@ -635,6 +638,37 @@
               <span style="font-size:11px;color:#64748b">
                 ${d.architectureNote}
               </span>
+            </div>
+          </div>`;
+      } catch { /* non-critical */ }
+    }
+
+    async function loadSprint8Readiness() {
+      try {
+        const r = await fetch('/api/v1/compliance/sprint8-readiness');
+        const d = await r.json();
+        const el = document.getElementById('sprint8-readiness-panel');
+        if (!el) return;
+        el.innerHTML = `
+          <div class="card">
+            <h2>Sprint 8 Readiness</h2>
+            <p class="sub">Repo-deliverable readiness for OPC-UA, load testing, and LOPA workpack.</p>
+            <div class="metric-grid">
+              <div class="metric">
+                <div class="label">OPC-UA</div>
+                <div class="value">${escapeHtml(d.opcUaReadiness?.status || "UNKNOWN")}</div>
+              </div>
+              <div class="metric">
+                <div class="label">Load Test</div>
+                <div class="value">${escapeHtml(d.loadTesting?.status || "UNKNOWN")}</div>
+              </div>
+              <div class="metric">
+                <div class="label">LOPA</div>
+                <div class="value">${escapeHtml(d.lopa?.status || "UNKNOWN")}</div>
+              </div>
+            </div>
+            <div style="margin-top:14px;color:#64748b;font-size:13px;line-height:1.7;">
+              ${escapeHtml(d.productionGate || "")}
             </div>
           </div>`;
       } catch { /* non-critical */ }

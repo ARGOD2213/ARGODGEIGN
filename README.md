@@ -22,7 +22,7 @@ Industrial decision-support platform for continuous process facilities. Event-dr
 | Sprint 5 | CLOSED | PTW workflow, compliance export, AI feedback loop |
 | Sprint 6 | CLOSED | SIL register, CEMS monitoring, edge layer ADR |
 | Sprint 7 | CLOSED | Edge agent, ring buffer, offline rules, ops.html edge status |
-| Sprint 8 | PENDING | Real OPC-UA integration, load testing, SIL LOPA completion |
+| Sprint 8 | IN PROGRESS | OPC-UA readiness pack, load-test harness, and LOPA workpack committed; external validation still required |
 
 ---
 
@@ -113,6 +113,7 @@ POST /api/v1/ptw/issue
 PUT  /api/v1/ptw/{id}/status
 GET  /api/v1/compliance/report
 GET  /api/v1/compliance/sil-status
+GET  /api/v1/compliance/sprint8-readiness
 GET  /api/v1/cems/current
 POST /api/v1/ai-feedback/vote
 ```

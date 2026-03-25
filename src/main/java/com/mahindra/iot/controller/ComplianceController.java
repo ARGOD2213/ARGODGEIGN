@@ -55,6 +55,32 @@ public class ComplianceController {
         ));
     }
 
+    @GetMapping("/api/v1/compliance/sprint8-readiness")
+    @Operation(summary = "Sprint 8 readiness pack status")
+    public ResponseEntity<Map<String, Object>> getSprint8Readiness() {
+        return ResponseEntity.ok(Map.of(
+            "status", "REPO_READY_EXTERNAL_VALIDATION_PENDING",
+            "opcUaReadiness", Map.of(
+                "status", "DOCUMENTED",
+                "mode", "READ_ONLY",
+                "doc", "docs/SPRINT8_OPCUA_READINESS.md"
+            ),
+            "loadTesting", Map.of(
+                "status", "HARNESS_READY",
+                "script", "scripts/load-test-ingest.js",
+                "doc", "docs/SPRINT8_LOAD_TEST_PLAN.md"
+            ),
+            "lopa", Map.of(
+                "status", "WORKPACK_READY_EXTERNAL_SIGNOFF_PENDING",
+                "register", "docs/sil/SIL_ASSESSMENT_REGISTER.md",
+                "template", "docs/sil/LOPA_TEMPLATE.md",
+                "packet", "docs/sil/LOPA_EXECUTION_PACKET.md"
+            ),
+            "productionGate", "External plant access, executed load tests, and formal LOPA signoff still required.",
+            "checkedAt", java.time.Instant.now().toString()
+        ));
+    }
+
     @GetMapping("/api/v1/compliance/inspections")
     @Operation(summary = "Machine inspection due list")
     public ResponseEntity<List<Map<String, Object>>> getInspections() {
@@ -168,6 +194,7 @@ public class ComplianceController {
         result.put("productionGate", "SIL assessment required before production deployment");
         result.put("registerLocation", "docs/sil/SIL_ASSESSMENT_REGISTER.md");
         result.put("lopaTemplate", "docs/sil/LOPA_TEMPLATE.md");
+        result.put("lopaExecutionPacket", "docs/sil/LOPA_EXECUTION_PACKET.md");
         result.put("architectureNote", "ADR-001: Rule engine is AWS Lambda. " +
             "Platform is advisory only. Not a certified SIS.");
         result.put("checkedAt", java.time.Instant.now().toString());
