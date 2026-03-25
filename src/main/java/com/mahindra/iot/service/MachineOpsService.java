@@ -179,6 +179,9 @@ public class MachineOpsService {
         alert.put("status", event.getStatus());
         alert.put("aiRiskScore", event.getAiRiskScore());
         alert.put("aiSummary", event.getAiIncidentSummary());
+        alert.put("alertPrecisionScore", event.getAlertPrecisionScore());
+        alert.put("alertActionability", event.getAlertActionability());
+        alert.put("primaryFailureMode", event.getPrimaryFailureMode());
         alert.put("weatherNote", event.getWeatherCorrelationNote());
         alert.put("aiAdvisory", AiAdvisoryWrapper.fromEvent(event));
         return alert;

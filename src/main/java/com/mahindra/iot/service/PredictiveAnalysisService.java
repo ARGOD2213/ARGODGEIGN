@@ -21,6 +21,7 @@ public class PredictiveAnalysisService {
     private final SensorContextEnricher sensorContextEnricher;
     private final PredictiveAnalysisCacheService predictiveAnalysisCacheService;
     private final LocalPredictiveIntelligenceService localPredictiveIntelligenceService;
+    private final OperationalAlertScoringService operationalAlertScoringService;
 
     @Value("${ai.analysis.enabled:true}")
     private boolean analysisEnabled;
@@ -57,6 +58,8 @@ public class PredictiveAnalysisService {
                 applyRuleBasedAnalysis(event, confidence);
             }
         }
+
+        operationalAlertScoringService.enrichAlertMetadata(event, context);
     }
 
     private boolean applyCachedAnalysis(SensorEvent event) {

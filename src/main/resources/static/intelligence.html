@@ -28,7 +28,7 @@
     .panel { padding:22px; }
     .panel h2 { margin:0 0 6px; font-size:20px; }
     .panel .sub { margin:0 0 16px; color:var(--muted); font-size:13px; }
-    .machine-list,.driver-list,.source-list,.suggestions { display:grid; gap:10px; }
+    .machine-list,.driver-list,.source-list,.suggestions,.watchlist { display:grid; gap:10px; }
     .machine-card,.driver,.source-item,.suggestion,.metric,.bubble,.chat-log { border:1px solid var(--line); border-radius:18px; }
     .machine-card { background:#f8fbff; padding:14px; cursor:pointer; transition:transform .18s ease,border-color .18s ease; }
     .machine-card:hover { transform:translateY(-1px); border-color:#7dd3fc; }
@@ -84,6 +84,9 @@
       <h2>Machines</h2>
       <p class="sub">Choose a machine to refresh the local intelligence summary and chat context.</p>
       <div id="machineList" class="machine-list">Loading machines...</div>
+      <h2 style="margin-top:18px;">Fleet Watchlist</h2>
+      <p class="sub">Highest-risk machines across the current retained telemetry.</p>
+      <div id="watchlist" class="watchlist">Loading fleet watchlist...</div>
     </aside>
     <section style="display:grid;gap:18px;">
       <div class="panel">
@@ -133,43 +136,69 @@
   }
   async function selectMachine(machineId) { selectedMachineId = machineId; renderMachines(); await refreshMachine(); }
   function renderSummary(report) {
-    document.getElementById("selectedMachineHero").textContent = report.machineId || "-";
+    const core = report.coreReport || report;
+    document.getElementById("selectedMachineHero").textContent = core.machineId || "-";
     document.getElementById("summaryShell").innerHTML = `
       <div class="summary-grid">
-        <div class="metric"><div class="label">Risk Score</div><div class="value">${escapeHtml(report.riskScore ?? "N/A")}</div></div>
-        <div class="metric"><div class="label">Risk Level</div><div class="value"><span class="${badgeClass(report.riskLevel)}">${escapeHtml(report.riskLevel || "UNKNOWN")}</span></div></div>
-        <div class="metric"><div class="label">Confidence</div><div class="value"><span class="${badgeClass(report.confidence)}">${escapeHtml(report.confidence || "LOW")}</span></div></div>
-        <div class="metric"><div class="label">Predicted ETA</div><div class="value" style="font-size:16px;line-height:1.5;">${escapeHtml(report.predictedFailureEta || "N/A")}</div></div>
+        <div class="metric"><div class="label">Risk Score</div><div class="value">${escapeHtml(core.riskScore ?? "N/A")}</div></div>
+        <div class="metric"><div class="label">Risk Level</div><div class="value"><span class="${badgeClass(core.riskLevel)}">${escapeHtml(core.riskLevel || "UNKNOWN")}</span></div></div>
+        <div class="metric"><div class="label">Confidence</div><div class="value"><span class="${badgeClass(core.confidence)}">${escapeHtml(core.confidence || "LOW")}</span></div></div>
+        <div class="metric"><div class="label">Predicted ETA</div><div class="value" style="font-size:16px;line-height:1.5;">${escapeHtml(core.predictedFailureEta || "N/A")}</div></div>
       </div>
-      <div class="driver" style="margin-bottom:14px;"><strong>Summary</strong><div style="margin-top:8px;line-height:1.7;">${escapeHtml(report.summary || "No summary available.")}</div></div>
+      <div class="summary-grid" style="margin-top:-4px;">
+        <div class="metric"><div class="label">Alert Precision</div><div class="value">${escapeHtml(report.alertAccuracy?.precisionScore ?? "N/A")}</div></div>
+        <div class="metric"><div class="label">Actionability</div><div class="value"><span class="${badgeClass(report.alertAccuracy?.actionability)}">${escapeHtml(report.alertAccuracy?.actionability || "UNKNOWN")}</span></div></div>
+        <div class="metric"><div class="label">Watch Window</div><div class="value" style="font-size:16px;line-height:1.5;">${escapeHtml(report.riskTrajectory?.nextWindow || "N/A")}</div></div>
+        <div class="metric"><div class="label">Short-Term Trend</div><div class="value" style="font-size:16px;line-height:1.5;">${escapeHtml(report.riskTrajectory?.shortTermTrend || "N/A")}</div></div>
+      </div>
+      <div class="driver" style="margin-bottom:14px;"><strong>Summary</strong><div style="margin-top:8px;line-height:1.7;">${escapeHtml(core.summary || "No summary available.")}</div></div>
+      <div class="driver" style="margin-bottom:14px;"><strong>Decision Narrative</strong><div style="margin-top:8px;line-height:1.7;">${escapeHtml(report.decisionNarrative || core.summary || "No narrative available.")}</div></div>
       <div class="row" style="align-items:start;margin-bottom:14px;">
-        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Model Stack</h3><div class="driver-list">${(report.modelBreakdown || []).map(item => `<div class="driver"><strong>${escapeHtml(item.modelName)}</strong><div style="margin-top:6px;">${escapeHtml(item.interpretation)} | Score ${escapeHtml(item.score)}</div><div style="margin-top:6px;color:var(--muted);font-size:13px;">${escapeHtml(item.rationale || item.method || "")}</div></div>`).join("")}</div></div>
+        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Expanded Model Stack</h3><div class="driver-list">${((report.expandedModelStack || core.modelBreakdown || []).map(item => `<div class="driver"><strong>${escapeHtml(item.modelName)}</strong><div style="margin-top:6px;">${escapeHtml(item.interpretation)} | Score ${escapeHtml(item.score)}</div><div style="margin-top:6px;color:var(--muted);font-size:13px;">${escapeHtml(item.rationale || item.method || "")}</div></div>`)).join("")}</div></div>
         <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Context Snapshot</h3><div class="driver-list">
-          <div class="driver">Events observed: ${escapeHtml(report.contextSnapshot?.eventsObserved ?? "0")}</div>
-          <div class="driver">Warning events: ${escapeHtml(report.contextSnapshot?.warningEvents ?? "0")}</div>
-          <div class="driver">Critical events: ${escapeHtml(report.contextSnapshot?.criticalEvents ?? "0")}</div>
-          <div class="driver">Threshold ratio: ${escapeHtml(report.contextSnapshot?.thresholdRatio ?? "0")}</div>
-          <div class="driver">Slope/event: ${escapeHtml(report.contextSnapshot?.slopePerEvent ?? "0")}</div>
-          <div class="driver">Volatility: ${escapeHtml(report.contextSnapshot?.volatility ?? "0")}</div>
+          <div class="driver">Events observed: ${escapeHtml(core.contextSnapshot?.eventsObserved ?? "0")}</div>
+          <div class="driver">Warning events: ${escapeHtml(core.contextSnapshot?.warningEvents ?? "0")}</div>
+          <div class="driver">Critical events: ${escapeHtml(core.contextSnapshot?.criticalEvents ?? "0")}</div>
+          <div class="driver">Threshold ratio: ${escapeHtml(core.contextSnapshot?.thresholdRatio ?? "0")}</div>
+          <div class="driver">Slope/event: ${escapeHtml(core.contextSnapshot?.slopePerEvent ?? "0")}</div>
+          <div class="driver">Volatility: ${escapeHtml(core.contextSnapshot?.volatility ?? "0")}</div>
         </div></div>
       </div>
       <div class="row" style="align-items:start;">
-        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Top Drivers</h3><div class="driver-list">${(report.topDrivers || []).map(item => `<div class="driver">${escapeHtml(item)}</div>`).join("")}</div></div>
-        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Training References</h3><div class="source-list">${(report.trainingSources || []).map(item => `<div class="source-item">${escapeHtml(item)}</div>`).join("")}</div></div>
+        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Top Drivers</h3><div class="driver-list">${(core.topDrivers || []).map(item => `<div class="driver">${escapeHtml(item)}</div>`).join("")}</div></div>
+        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Training References</h3><div class="source-list">${(core.trainingSources || []).map(item => `<div class="source-item">${escapeHtml(item)}</div>`).join("")}</div></div>
       </div>
-      <div class="driver" style="margin-top:14px;"><strong>Portfolio Highlights</strong><div class="driver-list" style="margin-top:10px;">${(report.portfolioHighlights || []).map(item => `<div class="driver">${escapeHtml(item)}</div>`).join("")}</div></div>
-      <div class="driver" style="margin-top:14px;"><strong>Recommended Action</strong><div style="margin-top:8px;line-height:1.7;">${escapeHtml(report.recommendedAction || "No action provided.")}</div></div>`;
+      <div class="row" style="align-items:start;margin-top:14px;">
+        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Investigation Checklist</h3><div class="driver-list">${((report.investigationChecklist || []).map(item => `<div class="driver">${escapeHtml(item)}</div>`)).join("")}</div></div>
+        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Watchlist Reasons</h3><div class="driver-list">${((report.watchlistReasons || []).map(item => `<div class="driver">${escapeHtml(item)}</div>`)).join("")}</div></div>
+      </div>
+      <div class="driver" style="margin-top:14px;"><strong>Alert Accuracy Note</strong><div style="margin-top:8px;line-height:1.7;">${escapeHtml(report.alertAccuracy?.note || "No alert accuracy note provided.")}</div></div>
+      <div class="driver" style="margin-top:14px;"><strong>Portfolio Highlights</strong><div class="driver-list" style="margin-top:10px;">${(core.portfolioHighlights || []).map(item => `<div class="driver">${escapeHtml(item)}</div>`).join("")}</div></div>
+      <div class="driver" style="margin-top:14px;"><strong>Recommended Action</strong><div style="margin-top:8px;line-height:1.7;">${escapeHtml(core.recommendedAction || "No action provided.")}</div></div>`;
   }
-  function renderSuggestions() {
-    const prompts = ["How is this machine performing right now?","What is the likely failure mode and ETA?","Do vibration readings look risky?","Why is the model scoring this machine this way?","Which model is driving the risk?"];
-    document.getElementById("suggestions").innerHTML = prompts.map(prompt => `<button class="alt" onclick="useSuggestion('${escapeHtml(prompt)}')">${escapeHtml(prompt)}</button>`).join("");
+  function renderSuggestions(prompts) {
+    const safePrompts = prompts && prompts.length ? prompts : ["How is this machine performing right now?","What is the likely failure mode and ETA?","Do vibration readings look risky?","Why is the model scoring this machine this way?","How accurate is this alert and can I trust it?"];
+    document.getElementById("suggestions").innerHTML = safePrompts.map(prompt => `<button class="alt" onclick="useSuggestion('${escapeHtml(prompt)}')">${escapeHtml(prompt)}</button>`).join("");
   }
   function useSuggestion(prompt) { document.getElementById("questionInput").value = prompt; }
   function appendBubble(text, kind) { const log = document.getElementById("chatLog"); const node = document.createElement("div"); node.className = "bubble " + kind; node.textContent = text; log.appendChild(node); log.scrollTop = log.scrollHeight; }
+  async function loadWatchlist() {
+    const items = await fetchJson("/api/v1/intelligence/fleet-watchlist");
+    document.getElementById("watchlist").innerHTML = (items || []).map(item => `
+      <div class="driver">
+        <div class="row">
+          <strong>${escapeHtml(item.machineId)}</strong>
+          <span class="${badgeClass(item.riskLevel)}">${escapeHtml(item.riskLevel)}</span>
+        </div>
+        <div style="margin-top:6px;font-size:13px;color:var(--muted);">${escapeHtml(item.failureMode || "unknown")} | ${escapeHtml(item.alertActionability || "UNKNOWN")} actionability</div>
+        <div style="margin-top:6px;">${escapeHtml(item.topReason || "")}</div>
+      </div>`).join("");
+  }
   async function refreshMachine() {
     if (!selectedMachineId) return;
-    const report = await fetchJson("/api/v1/intelligence/" + encodeURIComponent(selectedMachineId) + "/summary");
+    const report = await fetchJson("/api/v1/intelligence/" + encodeURIComponent(selectedMachineId) + "/deep-dive");
     renderSummary(report);
+    renderSuggestions(report.recommendedQuestions || []);
     document.getElementById("chatLog").innerHTML = "";
     appendBubble("Selected machine: " + selectedMachineId + ". Ask about performance, alerts, sensors, or failure ETA.", "bot");
   }
@@ -183,8 +212,9 @@
     let answer = response.answer || "No answer generated.";
     if (response.evidence && response.evidence.length) answer += "\n\nEvidence:\n- " + response.evidence.join("\n- ");
     appendBubble(answer, "bot");
+    renderSuggestions(response.recommendedQuestions || []);
   }
-  async function init() { renderSuggestions(); await Promise.all([loadSources(), loadMachines()]); }
+  async function init() { renderSuggestions(); await Promise.all([loadSources(), loadMachines(), loadWatchlist()]); }
   init().catch(error => { document.getElementById("summaryShell").innerHTML = `<div class="footnote">Could not load intelligence console: ${escapeHtml(error.message)}</div>`; });
 </script>
 </body>

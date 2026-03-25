@@ -61,6 +61,13 @@ The machine intelligence path now exposes a named ensemble instead of a single g
 
 These models power the machine chat, predictive summary cards, driver breakdowns, and the local advisory path used for portfolio demos without paid runtime inference.
 
+Additional depth now exposed in the intelligence console:
+
+- `ARGUS Sensor Drift Sentinel`: machine-baseline deviation scoring for subtle drift detection
+- `ARGUS Cascade Stress Graph`: cross-sensor corroboration for multi-signal machine stress
+- `ARGUS Recovery Stability`: oscillation tracking after excursions instead of assuming clean recovery
+- `ARGUS Alert Precision Engine`: operator-facing alert trust and actionability scoring
+
 ---
 
 ## Dashboards (9 live)
@@ -101,6 +108,8 @@ GET  /api/machines
 GET  /api/machines/{id}/alerts
 GET  /api/machines/{id}/trend
 GET  /api/v1/intelligence/{machineId}/summary
+GET  /api/v1/intelligence/{machineId}/deep-dive
+GET  /api/v1/intelligence/fleet-watchlist
 POST /api/v1/intelligence/chat
 POST /api/v1/alerts/{id}/acknowledge
 GET  /api/v1/alerts/unacknowledged

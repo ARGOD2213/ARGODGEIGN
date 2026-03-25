@@ -27,6 +27,10 @@ public final class AiAdvisoryWrapper {
         advisory.put("analysis", event.getAiIncidentSummary());
         advisory.put("summary", event.getAiIncidentSummary());
         advisory.put("recommendedAction", event.getAiRecommendedAction());
+        advisory.put("alertPrecisionScore", event.getAlertPrecisionScore());
+        advisory.put("alertActionability", event.getAlertActionability());
+        advisory.put("alertAccuracyNote", event.getAlertAccuracyNote());
+        advisory.put("primaryFailureMode", event.getPrimaryFailureMode());
         advisory.put("dataSource", event.getAnalysisSource());
         advisory.put("validFor", VALID_FOR);
         advisory.put("calibrated", false);

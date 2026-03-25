@@ -44,6 +44,9 @@ public class SensorController {
         response.put("status", event.getStatus());
         response.put("alertFired", event.getAlertId() != null);
         response.put("aiRiskScore", event.getAiRiskScore() != null ? event.getAiRiskScore() : "N/A");
+        response.put("alertPrecisionScore", event.getAlertPrecisionScore() != null ? event.getAlertPrecisionScore() : "N/A");
+        response.put("alertActionability", event.getAlertActionability() != null ? event.getAlertActionability() : "N/A");
+        response.put("primaryFailureMode", event.getPrimaryFailureMode() != null ? event.getPrimaryFailureMode() : "N/A");
         response.put("weatherNote", event.getWeatherCorrelationNote() != null ? event.getWeatherCorrelationNote() : "N/A");
         response.put("analysisSource", event.getAnalysisSource() != null ? event.getAnalysisSource() : "NONE");
         response.put("aiAdvisory", AiAdvisoryWrapper.fromEvent(event));
