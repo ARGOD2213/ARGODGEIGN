@@ -141,14 +141,27 @@ aws s3api put-bucket-policy \
   --region "$REGION"
 aws s3 website "s3://${BUCKET}" --index-document ops.html --region "$REGION"
 
+echo "=== Step 6: Upload mobile web app assets ==="
+TMP_OPS_HTML="$(mktemp)"
+sed "s|${API_PLACEHOLDER:-https://REPLACE_WITH_API_GATEWAY_URL}|${API_URL}|g" \
+  src/main/resources/static/ops.html > "$TMP_OPS_HTML"
+aws s3 cp "$TMP_OPS_HTML" "s3://${BUCKET}/ops.html" \
+  --content-type text/html --region "$REGION"
+aws s3 cp src/main/resources/static/ops.webmanifest \
+  "s3://${BUCKET}/ops.webmanifest" \
+  --content-type application/manifest+json --region "$REGION"
+aws s3 cp src/main/resources/static/argus-ops-icon.svg \
+  "s3://${BUCKET}/argus-ops-icon.svg" \
+  --content-type image/svg+xml --region "$REGION"
+rm -f "$TMP_OPS_HTML"
+
 echo ""
 echo "=== DONE ==="
 echo "API URL:      $API_URL"
 echo "ops.html URL: http://${BUCKET}.s3-website.${REGION}.amazonaws.com/ops.html"
 echo ""
-echo "Next: update the API constant in src/main/resources/static/ops.html"
-echo "      with: $API_URL"
-echo "      Then run: aws s3 cp src/main/resources/static/ops.html s3://${BUCKET}/ops.html --content-type text/html"
+echo "The mobile web app has been uploaded with the backend URL injected."
+echo "Android and iPhone can both use the same backend from the same S3 page."
 echo ""
 echo "IMPORTANT: Create the SSM parameter before deploying if not done:"
 echo "  aws ssm put-parameter --name /argus/ops/control_password \\"

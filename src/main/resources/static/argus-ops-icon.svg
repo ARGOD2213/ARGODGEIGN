@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="ARGUS Ops icon">
+  <rect width="256" height="256" rx="56" fill="#0f172a"/>
+  <rect x="28" y="28" width="200" height="200" rx="40" fill="#1e293b" stroke="#38bdf8" stroke-width="8"/>
+  <path d="M128 54 82 134h33l-15 68 74-101h-37l18-47z" fill="#38bdf8"/>
+  <circle cx="190" cy="68" r="14" fill="#4ade80"/>
+</svg>

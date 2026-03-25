@@ -26,11 +26,11 @@ aws ssm put-parameter \
 bash scripts/deploy-ops-control.sh <elastic-ip>
 ```
 
-## 4. Set API Gateway URL in ops.html
+## 4. Deploy the mobile app to S3
 
-Replace `REPLACE_WITH_API_GATEWAY_URL` in `src/main/resources/static/ops.html` with the URL printed by `deploy-ops-control.sh`.
+`deploy-ops-control.sh` now uploads the mobile web app automatically and injects the API Gateway URL into the uploaded `ops.html`.
 
-Then upload the single source of truth to S3:
+If you want to re-upload manually later:
 
 ```bash
 aws s3 cp src/main/resources/static/ops.html \
@@ -38,6 +38,8 @@ aws s3 cp src/main/resources/static/ops.html \
   --content-type text/html \
   --region ap-south-1
 ```
+
+The page also supports runtime backend setup with a saved API URL, so the same app can be used on both Android and iPhone against the same backend.
 
 ## 5. Set dashboard credentials on EC2
 
@@ -56,15 +58,15 @@ bash scripts/open-dashboard-port.sh
 
 Run this only after confirming Spring Security HTTP Basic auth works on port `8080`.
 
-## 7. Bookmark the phone control page
+## 7. Add the phone control page to the home screen
 
-Bookmark:
+Open:
 
 ```text
 http://argus-ops-ui.s3-website.ap-south-1.amazonaws.com/ops.html
 ```
 
-This page remains available even when EC2 is stopped.
+This page remains available even when EC2 is stopped. On Android and iPhone, use "Add to Home Screen" to make it behave like an app.
 
 ## Phone flow after setup
 

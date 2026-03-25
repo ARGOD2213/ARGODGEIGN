@@ -2,140 +2,389 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ARGUS Control</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ARGUS Ops">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="./ops.webmanifest">
+<title>ARGUS Ops</title>
 <style>
+:root{
+  --bg:#0f172a;
+  --panel:#1e293b;
+  --panel-border:#334155;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --muted-2:#64748b;
+  --ok-bg:#14532d;
+  --ok-text:#4ade80;
+  --warn-bg:#312e81;
+  --warn-text:#c4b5fd;
+  --bad-bg:#450a0a;
+  --bad-text:#f87171;
+  --accent:#2563eb;
+  --accent-2:#38bdf8;
+  --alert-bg:#431407;
+  --alert-border:#d97706;
+  --alert-text:#fbbf24;
+}
+
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:#0f172a;color:#f1f5f9;
-     min-height:100vh;display:flex;flex-direction:column;
-     align-items:center;padding:32px 16px}
-h1{font-size:22px;font-weight:700;color:#38bdf8;margin-bottom:4px}
-.sub{font-size:13px;color:#64748b;margin-bottom:28px}
-.card{background:#1e293b;border-radius:16px;padding:20px;
-      width:100%;max-width:360px;margin-bottom:16px}
-.row{display:flex;justify-content:space-between;align-items:center;
-     margin-bottom:10px}
-.row:last-child{margin-bottom:0}
-.lbl{font-size:13px;color:#94a3b8}
-.badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px}
-.run,.running{background:#14532d;color:#4ade80}
-.stop,.stopped{background:#450a0a;color:#f87171}
-.pend{background:#312e81;color:#a5b4fc}
-.unk,.unknown{background:#1e293b;color:#64748b;border:1px solid #334155}
-.btn{width:100%;max-width:360px;padding:17px;border:none;
-     border-radius:14px;font-size:16px;font-weight:700;
-     cursor:pointer;margin-bottom:10px;transition:opacity .15s}
-.btn:disabled{opacity:.35;cursor:not-allowed}
-.b-start{background:#2563eb;color:#fff}
+html{background:var(--bg)}
+body{
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(56,189,248,.14), transparent 28%),
+    linear-gradient(180deg, #0b1220 0%, var(--bg) 40%, #111827 100%);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:24px 16px calc(24px + env(safe-area-inset-bottom));
+}
+
+.wrap{width:100%;max-width:420px}
+.hero{margin-bottom:18px}
+.eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--accent-2);
+  margin-bottom:10px;
+}
+.eyebrow::before{
+  content:"";
+  width:18px;
+  height:2px;
+  background:var(--accent-2);
+  border-radius:999px;
+}
+h1{font-size:28px;line-height:1.05;margin-bottom:6px}
+.sub{font-size:14px;line-height:1.5;color:var(--muted);max-width:34ch}
+
+.card{
+  background:rgba(30,41,59,.88);
+  border:1px solid rgba(148,163,184,.15);
+  box-shadow:0 18px 40px rgba(2,6,23,.26);
+  border-radius:18px;
+  padding:18px;
+  width:100%;
+  margin-bottom:14px;
+  backdrop-filter:blur(14px);
+}
+
+.title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.copy{font-size:13px;line-height:1.55;color:var(--muted);margin-bottom:12px}
+.row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid rgba(148,163,184,.12);
+}
+.row:last-child{border-bottom:none;padding-bottom:0}
+.row:first-of-type{padding-top:0}
+.lbl{font-size:13px;color:var(--muted)}
+.val{font-size:13px;color:var(--text)}
+.badge{
+  font-size:12px;
+  font-weight:700;
+  padding:4px 10px;
+  border-radius:999px;
+  min-width:88px;
+  text-align:center;
+}
+.running{background:var(--ok-bg);color:var(--ok-text)}
+.stopped{background:var(--bad-bg);color:var(--bad-text)}
+.warming{background:var(--warn-bg);color:var(--warn-text)}
+.unknown{
+  background:rgba(15,23,42,.65);
+  color:var(--muted-2);
+  border:1px solid var(--panel-border);
+}
+
+.field-label{
+  display:block;
+  font-size:13px;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+input[type=url],input[type=password]{
+  width:100%;
+  background:#0f172a;
+  border:1px solid var(--panel-border);
+  border-radius:12px;
+  color:var(--text);
+  font-size:15px;
+  padding:14px;
+  margin-bottom:10px;
+  outline:none;
+}
+input[type=url]:focus,input[type=password]:focus{border-color:var(--accent)}
+
+.btn{
+  width:100%;
+  padding:16px;
+  border:none;
+  border-radius:14px;
+  font-size:16px;
+  font-weight:700;
+  cursor:pointer;
+  margin-bottom:10px;
+  transition:transform .12s ease, opacity .12s ease, background .12s ease;
+}
+.btn:active{transform:scale(.99)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.b-save{background:#0f172a;color:var(--accent-2);border:1px solid var(--panel-border)}
+.b-start{background:var(--accent);color:#fff}
 .b-stop{background:#dc2626;color:#fff}
-.b-open{background:transparent;color:#38bdf8;
-        border:2px solid #2563eb;text-decoration:none;
-        text-align:center;display:none;padding-top:18px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;
-      width:100%;max-width:360px;margin-top:4px;display:none}
-.dl{background:#1e293b;border-radius:10px;padding:13px;
-    text-align:center;text-decoration:none;
-    color:#94a3b8;font-size:13px;font-weight:500}
-.dl:hover{color:#f1f5f9;background:#334155}
-.msg{font-size:13px;color:#64748b;text-align:center;
-     margin-bottom:14px;min-height:18px}
-.note{font-size:11px;color:#475569;text-align:center;margin-top:10px}
-input[type=password]{width:100%;max-width:360px;background:#1e293b;
-  border:1px solid #334155;border-radius:10px;color:#f1f5f9;
-  font-size:15px;padding:14px;margin-bottom:12px;outline:none}
-input[type=password]:focus{border-color:#2563eb}
-.pw-label{font-size:13px;color:#94a3b8;
-          width:100%;max-width:360px;margin-bottom:6px}
+.b-open{
+  background:transparent;
+  color:var(--accent-2);
+  border:2px solid var(--accent);
+  text-decoration:none;
+  text-align:center;
+  display:none;
+}
+
+.banner{
+  display:none;
+  background:var(--alert-bg);
+  border:1px solid var(--alert-border);
+  border-radius:14px;
+  padding:14px 16px;
+  color:var(--alert-text);
+  font-size:13px;
+  line-height:1.55;
+}
+.banner strong{display:block;margin-bottom:4px}
+.msg,.mini,.note{
+  font-size:13px;
+  line-height:1.5;
+  color:var(--muted-2);
+  text-align:center;
+}
+.msg{min-height:20px;margin:6px 0 14px}
+.mini{text-align:left;margin-top:2px}
+.note{font-size:12px;margin-top:6px}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  width:100%;
+  margin-top:4px;
+  display:none;
+}
+.dl{
+  background:rgba(15,23,42,.6);
+  border:1px solid rgba(148,163,184,.12);
+  border-radius:12px;
+  padding:13px;
+  text-align:center;
+  text-decoration:none;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:600;
+}
+.dl:hover{color:var(--text);background:#243248}
+
+@media (max-width:380px){
+  body{padding-inline:12px}
+  .card{padding:16px}
+  h1{font-size:24px}
+}
 </style>
 </head>
 <body>
+<main class="wrap">
+  <section class="hero">
+    <div class="eyebrow">ARGUS Mobile Control</div>
+    <h1>One mobile app for Android and iPhone.</h1>
+    <p class="sub">Use the same Lambda backend URL on both devices. Save it once and the app will reuse it locally.</p>
+  </section>
 
-<h1>⚡ ARGUS</h1>
-<p class="sub">Industrial IoT Control Plane</p>
+  <section class="card">
+    <div class="title">Backend Setup</div>
+    <p class="copy">Paste the API Gateway base URL once. You can also open this page with <code>?api=https://...execute-api...</code> and it will save automatically.</p>
+    <label class="field-label" for="api-url">API Gateway URL</label>
+    <input type="url" id="api-url" placeholder="https://xxxx.execute-api.ap-south-1.amazonaws.com">
+    <button class="btn b-save" id="b-save-api" type="button" onclick="saveApiConfig()">Save Backend URL</button>
+    <p class="mini" id="api-note"></p>
+  </section>
 
-<div class="card" id="status-card">
-  <div class="row">
-    <span class="lbl">EC2 Status</span>
-    <span class="badge unk" id="st-badge">Checking…</span>
-  </div>
-  <div class="row">
-    <span class="lbl">App Health</span>
-    <span class="badge unk" id="hl-badge">—</span>
-  </div>
-  <div class="row">
-    <span class="lbl">Uptime</span>
-    <span class="lbl"  id="up-label">—</span>
-  </div>
-  <div class="row">
-    <span class="lbl">Edge Agent</span>
-    <span class="badge unknown" id="edge-badge">â€”</span>
-  </div>
-</div>
+  <section class="card" id="status-card">
+    <div class="title">Platform Status</div>
+    <div class="row">
+      <span class="lbl">EC2 Status</span>
+      <span class="badge unknown" id="st-badge">Checking...</span>
+    </div>
+    <div class="row">
+      <span class="lbl">App Health</span>
+      <span class="badge unknown" id="hl-badge">-</span>
+    </div>
+    <div class="row">
+      <span class="lbl">Edge Agent</span>
+      <span class="badge unknown" id="edge-badge">-</span>
+    </div>
+    <div class="row">
+      <span class="lbl">Uptime</span>
+      <span class="val" id="up-label">-</span>
+    </div>
+  </section>
 
-<div id="edge-offline-banner" style="display:none;
-     background:#431407;border:1px solid #d97706;
-     border-radius:10px;padding:12px 16px;
-     width:100%;max-width:360px;margin-bottom:16px;
-     font-size:13px;color:#fbbf24;line-height:1.5">
-  ⚠ Edge Agent OFFLINE<br>
-  <span style="font-size:11px;color:#92400e">
-    Local rule engine and ring buffer inactive.
-    Cloud Lambda rule engine still operating normally.
-    Check edge PC connectivity.
-  </span>
-</div>
+  <section class="banner" id="edge-offline-banner">
+    <strong>Edge Agent OFFLINE</strong>
+    Local rule engine and ring buffer are not reporting. Cloud Lambda rule evaluation still remains available.
+  </section>
 
-<p class="pw-label">Control password</p>
-<input type="password" id="pw" placeholder="Enter ops password">
+  <section class="card">
+    <div class="title">Controls</div>
+    <label class="field-label" for="pw">Control password</label>
+    <input type="password" id="pw" placeholder="Enter ops password">
+    <p class="msg" id="msg"></p>
+    <button class="btn b-start" id="b-start" type="button" onclick="doStart()">Start ARGUS</button>
+    <button class="btn b-stop" id="b-stop" type="button" onclick="doStop()" disabled>Stop ARGUS</button>
+    <a class="btn b-open" id="b-open" href="#">Open Dashboard</a>
 
-<p class="msg" id="msg"></p>
+    <div class="grid" id="dash-grid">
+      <a class="dl" id="l-machine" href="#">Machine</a>
+      <a class="dl" id="l-safety" href="#">Safety</a>
+      <a class="dl" id="l-plant" href="#">Plant</a>
+      <a class="dl" id="l-compliance" href="#">Compliance</a>
+      <a class="dl" id="l-handover" href="#">Handover</a>
+      <a class="dl" id="l-timeline" href="#">Timeline</a>
+    </div>
 
-<button class="btn b-start" id="b-start" onclick="doStart()">▶ Start ARGUS</button>
-<button class="btn b-stop"  id="b-stop"  onclick="doStop()" disabled>■ Stop ARGUS</button>
-<a     class="btn b-open"  id="b-open"  href="#">↗ Open Dashboard</a>
-
-<div class="grid" id="dash-grid">
-  <a class="dl" id="l-machine"    href="#">Machine</a>
-  <a class="dl" id="l-safety"     href="#">Safety</a>
-  <a class="dl" id="l-plant"      href="#">Plant</a>
-  <a class="dl" id="l-compliance" href="#">Compliance</a>
-  <a class="dl" id="l-handover"   href="#">Handover</a>
-  <a class="dl" id="l-timeline"   href="#">Timeline</a>
-</div>
-
-<p class="note" id="autostop-note"></p>
+    <p class="note" id="autostop-note"></p>
+    <p class="note">Tip: add this page to the home screen on Android or iPhone for an app-like experience.</p>
+  </section>
+</main>
 
 <script>
-// -- CONFIGURE after running deploy-ops-control.sh ----------------
-const API = 'https://REPLACE_WITH_API_GATEWAY_URL';
-// -- END CONFIG ----------------------------------------------------
+const API_PLACEHOLDER = "https://REPLACE_WITH_API_GATEWAY_URL";
+const API_STORAGE_KEY = "argus.ops.apiBase";
+const POLL_FAST_MS = 15000;
+const POLL_SLOW_MS = 30000;
 
+let apiBaseUrl = "";
 let appUrl = null;
 let pollerId = null;
 
-const pw = () => document.getElementById('pw').value.trim();
-const msg = t => document.getElementById('msg').textContent = t;
+const pw = () => document.getElementById("pw").value.trim();
+const msg = text => { document.getElementById("msg").textContent = text; };
+
+function normalizeApiUrl(value) {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function placeholderConfigured() {
+  return API_PLACEHOLDER !== "https://REPLACE_WITH_API_GATEWAY_URL";
+}
+
+function queryApiUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return normalizeApiUrl(params.get("api"));
+}
+
+function initialApiUrl() {
+  const fromQuery = queryApiUrl();
+  if (fromQuery) {
+    window.localStorage.setItem(API_STORAGE_KEY, fromQuery);
+    return fromQuery;
+  }
+
+  const fromStorage = normalizeApiUrl(window.localStorage.getItem(API_STORAGE_KEY));
+  if (fromStorage) {
+    return fromStorage;
+  }
+
+  if (placeholderConfigured()) {
+    return normalizeApiUrl(API_PLACEHOLDER);
+  }
+
+  return "";
+}
+
+function applyApiUi() {
+  const input = document.getElementById("api-url");
+  const note = document.getElementById("api-note");
+  input.value = apiBaseUrl;
+
+  if (apiBaseUrl) {
+    note.textContent = `Using backend: ${apiBaseUrl}`;
+  } else {
+    note.textContent = "Backend not configured yet.";
+  }
+}
+
+function saveApiConfig() {
+  const candidate = normalizeApiUrl(document.getElementById("api-url").value);
+  if (!candidate) {
+    msg("Enter the API Gateway URL first.");
+    return;
+  }
+
+  apiBaseUrl = candidate;
+  window.localStorage.setItem(API_STORAGE_KEY, apiBaseUrl);
+  applyApiUi();
+  msg("Backend URL saved on this device.");
+  poll();
+}
 
 function apiHeaders(includeAuth) {
-  const headers = { 'Content-Type': 'application/json' };
-  if (includeAuth) headers['x-ops-password'] = pw();
+  const headers = { "Content-Type": "application/json" };
+  if (includeAuth) {
+    headers["x-ops-password"] = pw();
+  }
   return headers;
 }
 
-async function fetchStatus() {
+function backendReady() {
+  if (apiBaseUrl) {
+    return true;
+  }
+  msg("Save the backend URL before using the app.");
+  return false;
+}
+
+async function fetchJson(path, options = {}) {
+  if (!backendReady()) {
+    return null;
+  }
+
   try {
-    const response = await fetch(`${API}/ops/status`,
-      { headers: apiHeaders(false) });
-    return response.ok ? await response.json() : null;
+    const response = await fetch(`${apiBaseUrl}${path}`, {
+      cache: "no-store",
+      mode: "cors",
+      ...options
+    });
+    if (!response.ok) {
+      return { statusCode: response.status };
+    }
+    return await response.json();
   } catch {
     return null;
   }
 }
 
+async function fetchStatus() {
+  return await fetchJson("/ops/status", { headers: apiHeaders(false) });
+}
+
 async function checkHealth(url) {
   try {
-    const response = await fetch(`${url}/api/v1/health`,
-      { signal: AbortSignal.timeout(4000) });
+    const response = await fetch(`${url}/api/v1/health`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(4000)
+    });
     return response.ok;
   } catch {
     return false;
@@ -143,137 +392,203 @@ async function checkHealth(url) {
 }
 
 function ui(status, healthy) {
-  const sb = document.getElementById('st-badge');
-  const hb = document.getElementById('hl-badge');
-  const edgeBadge = document.getElementById('edge-badge');
-  const banner = document.getElementById('edge-offline-banner');
-  const bs = document.getElementById('b-start');
-  const bx = document.getElementById('b-stop');
-  const bo = document.getElementById('b-open');
-  const dg = document.getElementById('dash-grid');
-  const ul = document.getElementById('up-label');
-  const an = document.getElementById('autostop-note');
+  const sb = document.getElementById("st-badge");
+  const hb = document.getElementById("hl-badge");
+  const edgeBadge = document.getElementById("edge-badge");
+  const banner = document.getElementById("edge-offline-banner");
+  const bs = document.getElementById("b-start");
+  const bx = document.getElementById("b-stop");
+  const bo = document.getElementById("b-open");
+  const dg = document.getElementById("dash-grid");
+  const ul = document.getElementById("up-label");
+  const an = document.getElementById("autostop-note");
 
-  if (!status) {
-    sb.className = 'badge unk';
-    sb.textContent = 'Unknown';
-    if (edgeBadge) {
-      edgeBadge.className = 'badge unknown';
-      edgeBadge.textContent = 'UNKNOWN';
-    }
-    if (banner) {
-      banner.style.display = 'none';
-    }
+  if (!status || status.statusCode) {
+    sb.className = "badge unknown";
+    sb.textContent = "Unknown";
+    hb.className = "badge unknown";
+    hb.textContent = "-";
+    edgeBadge.className = "badge unknown";
+    edgeBadge.textContent = "UNKNOWN";
+    ul.textContent = "-";
+    banner.style.display = "none";
+    bs.disabled = true;
+    bx.disabled = true;
+    bo.style.display = "none";
+    dg.style.display = "none";
+    an.textContent = "";
     return;
   }
 
-  const s = status.state;
-  sb.className = `badge ${s==='running'?'run':s==='stopped'?'stop':'pend'}`;
-  sb.textContent = s[0].toUpperCase() + s.slice(1);
-  ul.textContent = status.uptimeMinutes > 0 ? `${status.uptimeMinutes} min` : '—';
+  const state = status.state;
+  sb.className = `badge ${state === "running" ? "running" : state === "stopped" ? "stopped" : "warming"}`;
+  sb.textContent = state ? state.charAt(0).toUpperCase() + state.slice(1) : "Unknown";
+  ul.textContent = status.uptimeMinutes > 0 ? `${status.uptimeMinutes} min` : "-";
 
   if (status.uptimeMinutes > 0) {
-    an.textContent = `Auto-stop in ~${Math.max(0, 240-status.uptimeMinutes)} min`;
+    an.textContent = `Auto-stop in about ${Math.max(0, 240 - status.uptimeMinutes)} min`;
   } else {
-    an.textContent = '';
+    an.textContent = "";
   }
 
-  bs.disabled = s !== 'stopped';
-  bx.disabled = s !== 'running';
+  bs.disabled = state !== "stopped";
+  bx.disabled = state !== "running";
 
-  if (s === 'running' && healthy && status.appUrl) {
+  if (state === "running" && healthy && status.appUrl) {
     appUrl = status.appUrl;
-    hb.className = 'badge run';
-    hb.textContent = 'Healthy';
-    bo.href = appUrl + '/index.html';
-    bo.style.display = 'block';
-    dg.style.display = 'grid';
-    const b = appUrl;
-    document.getElementById('l-machine').href = b + '/machine.html';
-    document.getElementById('l-safety').href = b + '/safety.html';
-    document.getElementById('l-plant').href = b + '/plant.html';
-    document.getElementById('l-compliance').href = b + '/compliance.html';
-    document.getElementById('l-handover').href = b + '/handover.html';
-    document.getElementById('l-timeline').href = b + '/timeline.html';
-  } else if (s === 'running') {
-    hb.className = 'badge pend';
-    hb.textContent = 'Warming up…';
-    bo.style.display = 'none';
-    dg.style.display = 'none';
+    hb.className = "badge running";
+    hb.textContent = "Healthy";
+    bo.href = `${appUrl}/index.html`;
+    bo.style.display = "block";
+    dg.style.display = "grid";
+    document.getElementById("l-machine").href = `${appUrl}/machine.html`;
+    document.getElementById("l-safety").href = `${appUrl}/safety.html`;
+    document.getElementById("l-plant").href = `${appUrl}/plant.html`;
+    document.getElementById("l-compliance").href = `${appUrl}/compliance.html`;
+    document.getElementById("l-handover").href = `${appUrl}/handover.html`;
+    document.getElementById("l-timeline").href = `${appUrl}/timeline.html`;
+  } else if (state === "running") {
+    hb.className = "badge warming";
+    hb.textContent = "Warming up";
+    bo.style.display = "none";
+    dg.style.display = "none";
   } else {
-    hb.className = 'badge stop';
-    hb.textContent = '—';
-    bo.style.display = 'none';
-    dg.style.display = 'none';
+    hb.className = "badge stopped";
+    hb.textContent = "-";
+    bo.style.display = "none";
+    dg.style.display = "none";
   }
 
-  if (edgeBadge && status.edgeStatus) {
-    edgeBadge.className = 'badge ' + (
-      status.edgeStatus === 'ONLINE' ? 'running' :
-      status.edgeStatus === 'OFFLINE' ? 'stopped' : 'unknown'
+  if (status.edgeStatus) {
+    edgeBadge.className = "badge " + (
+      status.edgeStatus === "ONLINE" ? "running" :
+      status.edgeStatus === "OFFLINE" ? "stopped" :
+      "unknown"
     );
     edgeBadge.textContent = status.edgeStatus;
+  } else {
+    edgeBadge.className = "badge unknown";
+    edgeBadge.textContent = "UNKNOWN";
   }
 
-  if (banner) {
-    banner.style.display = status.edgeStatus === 'OFFLINE' ? 'block' : 'none';
-  }
+  banner.style.display = status.edgeStatus === "OFFLINE" ? "block" : "none";
+}
+
+function startPolling(intervalMs) {
+  window.clearInterval(pollerId);
+  pollerId = window.setInterval(poll, intervalMs);
 }
 
 async function poll() {
   const status = await fetchStatus();
-  const healthy = status?.appUrl ? await checkHealth(status.appUrl) : false;
+  const healthy = status && status.appUrl ? await checkHealth(status.appUrl) : false;
   ui(status, healthy);
-  if (status?.state === 'running' && !healthy) {
-    msg('Warming up — checking every 15 s…');
-  } else if (status?.state === 'running' && healthy) {
-    msg('Platform is live. Tap Open Dashboard.');
-    clearInterval(pollerId);
-    pollerId = setInterval(poll, 30000);
+
+  if (!apiBaseUrl) {
+    msg("Save the backend URL to connect this device.");
+    return;
+  }
+
+  if (!status) {
+    msg("Backend unreachable. Check the saved API URL and mobile network.");
+    return;
+  }
+
+  if (status.statusCode === 401) {
+    msg("Unauthorized. Re-enter the control password.");
+    return;
+  }
+
+  if (status.state === "running" && !healthy) {
+    msg("Warming up. Checking every 15 seconds.");
+    startPolling(POLL_FAST_MS);
+  } else if (status.state === "running" && healthy) {
+    msg("Platform is live. Tap Open Dashboard.");
+    startPolling(POLL_SLOW_MS);
   } else {
-    msg('');
+    msg("");
+    startPolling(POLL_SLOW_MS);
   }
 }
 
 async function doStart() {
+  if (!backendReady()) {
+    return;
+  }
   if (!pw()) {
-    msg('Enter the ops password first.');
+    msg("Enter the ops password first.");
     return;
   }
-  document.getElementById('b-start').disabled = true;
-  msg('Sending start signal…');
-  const response = await fetch(`${API}/ops/start`,
-    { method: 'POST', headers: apiHeaders(true) });
+
+  const button = document.getElementById("b-start");
+  button.disabled = true;
+  msg("Sending start signal...");
+
+  let response;
+  try {
+    response = await fetch(`${apiBaseUrl}/ops/start`, {
+      method: "POST",
+      cache: "no-store",
+      mode: "cors",
+      headers: apiHeaders(true)
+    });
+  } catch {
+    msg("Start request failed. Check the backend URL and network.");
+    button.disabled = false;
+    return;
+  }
+
   if (response.status === 401) {
-    msg('Wrong password.');
-    document.getElementById('b-start').disabled = false;
+    msg("Wrong password.");
+    button.disabled = false;
     return;
   }
-  msg('Starting… polling every 15 s until healthy.');
-  clearInterval(pollerId);
-  pollerId = setInterval(poll, 15000);
+
+  msg("Starting. Polling every 15 seconds until healthy.");
+  startPolling(POLL_FAST_MS);
   poll();
 }
 
 async function doStop() {
+  if (!backendReady()) {
+    return;
+  }
   if (!pw()) {
-    msg('Enter the ops password first.');
+    msg("Enter the ops password first.");
     return;
   }
-  document.getElementById('b-stop').disabled = true;
-  msg('Stopping…');
-  const response = await fetch(`${API}/ops/stop`,
-    { method: 'POST', headers: apiHeaders(true) });
+
+  const button = document.getElementById("b-stop");
+  button.disabled = true;
+  msg("Stopping...");
+
+  let response;
+  try {
+    response = await fetch(`${apiBaseUrl}/ops/stop`, {
+      method: "POST",
+      cache: "no-store",
+      mode: "cors",
+      headers: apiHeaders(true)
+    });
+  } catch {
+    msg("Stop request failed. Check the backend URL and network.");
+    button.disabled = false;
+    return;
+  }
+
   if (response.status === 401) {
-    msg('Wrong password.');
-    document.getElementById('b-stop').disabled = false;
+    msg("Wrong password.");
+    button.disabled = false;
     return;
   }
-  setTimeout(poll, 3000);
+
+  window.setTimeout(poll, 3000);
 }
 
+apiBaseUrl = initialApiUrl();
+applyApiUi();
 poll();
-pollerId = setInterval(poll, 30000);
+startPolling(POLL_SLOW_MS);
 </script>
 </body>
 </html>
