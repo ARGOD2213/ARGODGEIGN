@@ -15,7 +15,7 @@
     <artifactId>iot-alert-engine</artifactId>
     <version>2.0.0</version>
     <name>ARGODREIGN IoT Alert Engine</name>
-    <description>Production IoT Alert Engine v2.0 - 22 sensors, Weather AI, Multi-LLM, Lambda MQTT</description>
+    <description>Production IoT Alert Engine v2.0 - 22 sensors, local predictive intelligence, and Lambda MQTT</description>
 
     <properties>
         <java.version>17</java.version>

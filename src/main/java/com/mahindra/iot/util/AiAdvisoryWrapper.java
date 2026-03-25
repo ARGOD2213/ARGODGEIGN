@@ -27,10 +27,10 @@ public final class AiAdvisoryWrapper {
         advisory.put("analysis", event.getAiIncidentSummary());
         advisory.put("summary", event.getAiIncidentSummary());
         advisory.put("recommendedAction", event.getAiRecommendedAction());
-        advisory.put("dataSource", event.getLlmConsensus());
+        advisory.put("dataSource", event.getAnalysisSource());
         advisory.put("validFor", VALID_FOR);
         advisory.put("calibrated", false);
-        advisory.put("consensus", event.getLlmConsensus());
+        advisory.put("consensus", event.getAnalysisSource());
         return advisory;
     }
 }

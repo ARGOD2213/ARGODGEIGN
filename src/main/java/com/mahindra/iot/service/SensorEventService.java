@@ -28,7 +28,7 @@ public class SensorEventService {
     private final SnsAlertService snsAlertService;
     private final SqsService sqsService;
     private final WeatherCorrelationService weatherCorrelationService;
-    private final MultiLlmAnalysisService multiLlmAnalysisService;
+    private final PredictiveAnalysisService predictiveAnalysisService;
     private final RedisTemplate<Object, Object> redisTemplate;
 
     private static final String LIVE_KEY   = "live:events";
@@ -79,9 +79,9 @@ public class SensorEventService {
             weatherCorrelationService.enrich(event);
         }
 
-        // 2. AI / LLM analysis (only for WARNING or CRITICAL)
+        // 2. Predictive analysis (only for WARNING or CRITICAL)
         if (!Boolean.TRUE.equals(req.getSkipAiAnalysis())) {
-            multiLlmAnalysisService.analyze(event);
+            predictiveAnalysisService.analyze(event);
         }
 
         // 3. Save to DynamoDB

@@ -16,7 +16,7 @@ Primary flow:
 1. Event comes from API or SQS (including Lambda-driven CSV simulation).
 2. Threshold engine marks NORMAL/WARNING/CRITICAL.
 3. Weather enrichment is applied (if enabled).
-4. AI risk analysis is applied (Gemini if key exists, else rule-based fallback).
+4. AI risk analysis is applied through the local predictive ensemble, with rule-based fallback if needed.
 5. Event is saved to DynamoDB.
 6. Live data and alerts are cached in Redis.
 7. Warning/Critical alerts are pushed to SNS + SQS.
@@ -39,7 +39,7 @@ Primary flow:
   Why: resilient asynchronous processing.
 - OpenWeatherMap API: weather context enrichment.
   Why: better root-cause insight for field conditions.
-- Gemini API (optional): AI-based incident reasoning.
+- Local predictive ensemble: in-process incident reasoning without paid runtime inference APIs.
   Why: richer risk summary and recommendation.
 - Python Lambda: CSV from S3 -> SQS message simulator.
   Why: controlled replay/demo of historical sensor data.
@@ -51,7 +51,7 @@ Primary flow:
 - Ingestion core pipeline: src/main/java/com/mahindra/iot/service/SensorEventService.java
 - Threshold values/rules: src/main/java/com/mahindra/iot/config/ThresholdConfig.java
 - Sensor catalog/types: src/main/java/com/mahindra/iot/enums/SensorType.java
-- AI logic/fallback: src/main/java/com/mahindra/iot/service/MultiLlmAnalysisService.java
+- AI logic/fallback: src/main/java/com/mahindra/iot/service/PredictiveAnalysisService.java
 - Weather enrichment logic: src/main/java/com/mahindra/iot/service/WeatherCorrelationService.java
 - Weather API client: src/main/java/com/mahindra/iot/service/WeatherService.java
 - SQS poll + enqueue: src/main/java/com/mahindra/iot/service/SqsService.java
@@ -84,7 +84,7 @@ Primary flow:
    - AWS_SNS_TOPIC_ARN
    - AWS_SQS_QUEUE_URL
    - AWS_SQS_DLQ_URL
-   - optional WEATHER_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY
+   - optional WEATHER_API_KEY
 
 ## 5) Start locally with Docker
 From C:\Users\pavan\Desktop\ARGODREIGN:

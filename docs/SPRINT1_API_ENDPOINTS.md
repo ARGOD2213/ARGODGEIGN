@@ -5,7 +5,7 @@ These endpoints are added for the Sprint 1 foundation milestone.
 ## Platform and Admin
 
 - `GET /api/platform/status`
-  - Returns runtime status, rule engine mode, LLM availability, DLQ depth, and last alert timestamp.
+  - Returns runtime status, rule engine mode, predictive intelligence availability, DLQ depth, and last alert timestamp.
 
 - `GET /api/admin/dlq-status`
   - Returns DLQ queue depth from SQS attributes.

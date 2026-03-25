@@ -22,7 +22,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-@Tag(name = "ARGODREIGN IoT Alert Engine", description = "22-sensor industrial IoT monitoring with Weather AI + Multi-LLM")
+@Tag(name = "ARGODREIGN IoT Alert Engine", description = "22-sensor industrial IoT monitoring with weather-aware local predictive intelligence")
 public class SensorController {
 
     private final SensorEventService sensorEventService;
@@ -32,7 +32,7 @@ public class SensorController {
 
     @PostMapping("/sensor/ingest")
     @Operation(summary = "Ingest sensor telemetry",
-               description = "Accepts sensor payload, evaluates 22-sensor thresholds, runs Weather AI + Gemini LLM analysis, fires SNS/SQS alerts, persists to DynamoDB")
+               description = "Accepts sensor payload, evaluates 22-sensor thresholds, runs weather-aware local predictive analysis, fires SNS/SQS alerts, persists to DynamoDB")
     public ResponseEntity<Map<String, Object>> ingestEvent(@Valid @RequestBody SensorIngestRequest request) {
         SensorEvent event = sensorEventService.ingestEvent(request);
         Map<String, Object> response = new LinkedHashMap<>();
@@ -45,7 +45,7 @@ public class SensorController {
         response.put("alertFired", event.getAlertId() != null);
         response.put("aiRiskScore", event.getAiRiskScore() != null ? event.getAiRiskScore() : "N/A");
         response.put("weatherNote", event.getWeatherCorrelationNote() != null ? event.getWeatherCorrelationNote() : "N/A");
-        response.put("llmConsensus", event.getLlmConsensus() != null ? event.getLlmConsensus() : "NONE");
+        response.put("analysisSource", event.getAnalysisSource() != null ? event.getAnalysisSource() : "NONE");
         response.put("aiAdvisory", AiAdvisoryWrapper.fromEvent(event));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

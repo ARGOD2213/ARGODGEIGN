@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class LlmAnalysisCacheService {
+public class PredictiveAnalysisCacheService {
 
     private final S3Client s3Client;
     private final ObjectMapper objectMapper;
@@ -30,7 +30,7 @@ public class LlmAnalysisCacheService {
     @Value("${ai.analysis.cache.bucket:iot-alert-engine-mahindra}")
     private String bucket;
 
-    @Value("${ai.analysis.cache.prefix:llm-cache}")
+    @Value("${ai.analysis.cache.prefix:predictive-analysis-cache}")
     private String prefix;
 
     @Value("${ai.analysis.cache.ttl.minutes:30}")

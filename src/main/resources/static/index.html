@@ -134,7 +134,7 @@
     }
 
     .nav-grid {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(6, minmax(0, 1fr));
     }
 
     .metric {
@@ -245,6 +245,7 @@
     <nav style="display:flex;gap:16px;">
       <a href="/index.html" style="color:#ffffff;text-decoration:none;font-size:14px;">Overview</a>
       <a href="/machine.html" style="color:#94a3b8;text-decoration:none;font-size:14px;">Machine</a>
+      <a href="/intelligence.html" style="color:#94a3b8;text-decoration:none;font-size:14px;">Intelligence</a>
       <a href="/safety.html" style="color:#94a3b8;text-decoration:none;font-size:14px;">Safety</a>
       <a href="/plant.html" style="color:#94a3b8;text-decoration:none;font-size:14px;">Plant</a>
       <a href="/compliance.html" style="color:#94a3b8;text-decoration:none;font-size:14px;">Compliance</a>
@@ -256,7 +257,7 @@
     <section class="hero">
       <div>
         <h1>ARGUS Overview Dashboard</h1>
-        <p>Platform state, live plant KPIs, recent alerts, and direct links to all operational views.</p>
+        <p>Platform state, live plant KPIs, recent alerts, predictive intelligence, and direct links to all operational views.</p>
       </div>
       <div class="stamp" id="lastUpdated">Loading overview telemetry...</div>
     </section>
@@ -333,7 +334,7 @@
       const cards = [
         { label: "Platform", value: platform.platform, status: platform.platform },
         { label: "Rule Engine", value: platform.ruleEngine, status: platform.ruleEngine === "LAMBDA" ? "RUNNING" : platform.ruleEngine },
-        { label: "LLM", value: platform.llm, status: platform.llm },
+        { label: "Intelligence", value: platform.intelligence, status: platform.intelligence },
         { label: "EC2", value: platform.ec2State, status: platform.ec2State }
       ];
 
@@ -394,6 +395,7 @@
     function renderNavCards(data) {
       const cards = [
         { href: "/machine.html", title: "Machine Intelligence", summary: "Live machines: " + data.machineCount + " | Critical: " + data.criticalAlerts },
+        { href: "/intelligence.html", title: "Predictive Ensemble", summary: "Named local models | Machine chat | Cost-safe local inference" },
         { href: "/safety.html", title: "Human Safety", summary: "WBGT " + data.wbgt.toFixed(1) + " | Max NH3 " + data.maxNh3.toFixed(1) + " ppm" },
         { href: "/plant.html", title: "Plant-Wide", summary: "Plant OEE " + data.plantOee.toFixed(1) + "% | Zones with alerts: " + data.zonesWithAlerts },
         { href: "/compliance.html", title: "Compliance", summary: "OCS " + data.compliance.toFixed(1) + "% | Demo period " + data.compliancePeriod },

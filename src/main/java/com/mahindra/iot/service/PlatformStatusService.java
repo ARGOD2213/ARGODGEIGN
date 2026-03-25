@@ -44,8 +44,8 @@ public class PlatformStatusService {
     @Value("${platform.environment:demo}")
     private String environment;
 
-    @Value("${ai.gemini.api.key:}")
-    private String geminiApiKey;
+    @Value("${ai.analysis.enabled:true}")
+    private boolean analysisEnabled;
 
     @Cacheable("platform-status")
     public Map<String, Object> getPlatformStatus() {
@@ -56,7 +56,7 @@ public class PlatformStatusService {
                 .max(String::compareTo)
                 .orElse("N/A");
 
-        String llmStatus = (geminiApiKey != null && !geminiApiKey.isBlank()) ? "AVAILABLE" : "UNAVAILABLE";
+        String intelligenceStatus = analysisEnabled ? "LOCAL_ML" : "DISABLED";
         Map<String, Object> dlq = getDlqStatus();
 
         Map<String, Object> status = new LinkedHashMap<>();
@@ -65,7 +65,7 @@ public class PlatformStatusService {
         status.put("timestamp", Instant.now().toString());
         status.put("awsRegion", region);
         status.put("ruleEngine", ruleEngineMode.toUpperCase());
-        status.put("llm", llmStatus);
+        status.put("intelligence", intelligenceStatus);
         status.put("athena", athenaAnalyticsService.isConfigured() ? "CONFIGURED" : "NOT_CONFIGURED");
         status.put("queueConfigured", queueUrl != null && !queueUrl.isBlank());
         status.put("dlqConfigured", dlqUrl != null && !dlqUrl.isBlank());

@@ -12,7 +12,6 @@ Add ALL of these secrets:
 | EC2_INSTANCE_ID | From `setup-ec2.sh` output (example: `i-0abc123def`) |
 | EC2_SSH_KEY | Contents of your EC2 `.pem` key file (full text) |
 | WEATHER_API_KEY | Your OpenWeatherMap key |
-| GEMINI_API_KEY | Your Google Gemini key |
 
 ## After secrets are set — mobile workflow
 

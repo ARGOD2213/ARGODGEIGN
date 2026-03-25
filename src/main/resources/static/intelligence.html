@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARGUS Intelligence Console</title>
+  <style>
+    :root { --ink:#0f172a; --muted:#64748b; --line:#d6dde8; --bg:#f4f7fb; --panel:#ffffff; --accent:#0f766e; --accent2:#0ea5e9; --warn:#d97706; --danger:#dc2626; --ok:#16a34a; --header:#14213d; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Georgia,"Segoe UI",sans-serif; background:radial-gradient(circle at top left,rgba(14,165,233,.10),transparent 32%),linear-gradient(180deg,#eef6ff 0%,var(--bg) 42%,#eef2f7 100%); color:var(--ink); }
+    header { position:sticky; top:0; z-index:100; background:rgba(20,33,61,.95); padding:14px 24px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+    .brand { color:#fff; font-weight:700; letter-spacing:.04em; text-transform:uppercase; font-size:14px; }
+    nav { display:flex; gap:16px; flex-wrap:wrap; }
+    nav a { color:#b8c5dd; text-decoration:none; font-size:14px; }
+    nav a.active { color:#fff; }
+    main { max-width:1380px; margin:0 auto; padding:28px 20px 40px; }
+    .hero { display:grid; grid-template-columns:1.2fr .8fr; gap:18px; margin-bottom:22px; }
+    .hero-card,.panel { background:var(--panel); border:1px solid var(--line); border-radius:24px; box-shadow:0 18px 50px rgba(15,23,42,.08); }
+    .hero-card { padding:24px; }
+    .hero h1 { margin:0 0 8px; font-size:34px; line-height:1.05; }
+    .hero p { margin:0; color:var(--muted); font-size:15px; line-height:1.7; }
+    .hero-note { margin-top:18px; display:inline-flex; gap:8px; align-items:center; background:#ecfeff; color:#155e75; border-radius:999px; padding:8px 14px; font-size:12px; font-weight:700; }
+    .hero-side { padding:24px; display:grid; gap:14px; align-content:start; }
+    .kpi { padding:14px 16px; border:1px solid var(--line); border-radius:18px; background:linear-gradient(180deg,#fff 0%,#f8fbff 100%); }
+    .kpi .label,.metric .label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+    .kpi .value,.metric .value { margin-top:8px; font-size:28px; font-weight:800; }
+    .layout { display:grid; grid-template-columns:340px 1fr; gap:18px; }
+    .panel { padding:22px; }
+    .panel h2 { margin:0 0 6px; font-size:20px; }
+    .panel .sub { margin:0 0 16px; color:var(--muted); font-size:13px; }
+    .machine-list,.driver-list,.source-list,.suggestions { display:grid; gap:10px; }
+    .machine-card,.driver,.source-item,.suggestion,.metric,.bubble,.chat-log { border:1px solid var(--line); border-radius:18px; }
+    .machine-card { background:#f8fbff; padding:14px; cursor:pointer; transition:transform .18s ease,border-color .18s ease; }
+    .machine-card:hover { transform:translateY(-1px); border-color:#7dd3fc; }
+    .machine-card.active { border-color:var(--accent2); background:#eff8ff; }
+    .row { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
+    .machine-id { font-weight:700; font-size:16px; }
+    .badge { display:inline-flex; align-items:center; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+    .badge.low,.badge.normal { background:#dcfce7; color:var(--ok); }
+    .badge.medium,.badge.warning { background:#fef3c7; color:var(--warn); }
+    .badge.high,.badge.critical { background:#fee2e2; color:var(--danger); }
+    .summary-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+    .metric,.driver,.source-item { background:#fbfdff; padding:14px; }
+    .chat-shell { display:grid; grid-template-rows:auto 1fr auto; min-height:560px; gap:14px; }
+    .chat-log { padding:14px; background:linear-gradient(180deg,#f8fbff 0%,#fff 100%); overflow:auto; display:grid; gap:12px; align-content:start; }
+    .bubble { max-width:88%; padding:12px 14px; line-height:1.6; font-size:14px; white-space:pre-wrap; }
+    .bubble.user { justify-self:end; background:#14213d; color:#fff; border-bottom-right-radius:6px; }
+    .bubble.bot { justify-self:start; background:#effcf6; color:#14532d; border-bottom-left-radius:6px; }
+    .composer { display:grid; grid-template-columns:1fr auto; gap:10px; }
+    textarea { width:100%; min-height:84px; resize:vertical; border:1px solid var(--line); border-radius:18px; padding:14px; font:inherit; background:#fff; }
+    button { border:none; border-radius:16px; padding:12px 18px; background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%); color:#fff; font-weight:700; cursor:pointer; }
+    button.alt { background:#eef6ff; color:#0f172a; border:1px solid var(--line); }
+    .footnote { color:var(--muted); font-size:12px; line-height:1.7; }
+    @media (max-width:1080px) { .hero,.layout { grid-template-columns:1fr; } .summary-grid { grid-template-columns:1fr 1fr; } }
+    @media (max-width:720px) { .summary-grid,.composer { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">ARGUS Intelligence Console</div>
+  <nav>
+    <a href="/index.html">Overview</a>
+    <a href="/machine.html">Machine</a>
+    <a href="/intelligence.html" class="active">Intelligence</a>
+    <a href="/handover.html">Handover</a>
+    <a href="/timeline.html">Timeline</a>
+  </nav>
+</header>
+<main>
+  <section class="hero">
+    <div class="hero-card">
+      <h1>Local Predictive Analysis and Machine Q&amp;A</h1>
+      <p>This console answers operator questions using local telemetry, trend analysis, and an in-process predictive model trained from bundled public-dataset-inspired profiles. It avoids paid runtime inference API calls and keeps AWS cost pressure flat.</p>
+      <div class="hero-note">LOCAL_ML_PUBLIC_SAMPLE_BLEND | No paid inference endpoint</div>
+    </div>
+    <div class="hero-side hero-card">
+      <div class="kpi"><div class="label">Runtime Cost Mode</div><div class="value" id="costMode">Local only</div></div>
+      <div class="kpi"><div class="label">Training References</div><div class="value" id="sourceCount">2</div></div>
+      <div class="kpi"><div class="label">Selected Machine</div><div class="value" id="selectedMachineHero">Loading</div></div>
+    </div>
+  </section>
+  <section class="layout">
+    <aside class="panel">
+      <h2>Machines</h2>
+      <p class="sub">Choose a machine to refresh the local intelligence summary and chat context.</p>
+      <div id="machineList" class="machine-list">Loading machines...</div>
+    </aside>
+    <section style="display:grid;gap:18px;">
+      <div class="panel">
+        <h2>Predictive Summary</h2>
+        <p class="sub">Local KNN-style scoring blended with recent machine trend data.</p>
+        <div id="summaryShell"><div class="footnote">Loading intelligence summary...</div></div>
+      </div>
+      <div class="panel">
+        <div class="chat-shell">
+          <div>
+            <h2>Machine Chat</h2>
+            <p class="sub">Ask about performance, alerts, failure ETA, vibration, temperature, or maintenance risk.</p>
+            <div class="suggestions" id="suggestions"></div>
+          </div>
+          <div class="chat-log" id="chatLog"></div>
+          <div>
+            <div class="composer">
+              <textarea id="questionInput" placeholder="Ask something like: How is COMP-01 performing and when should we intervene?"></textarea>
+              <button onclick="sendQuestion()">Ask</button>
+            </div>
+            <div class="footnote" style="margin-top:10px;">Advisory only. Not a control action. Rule engine has final authority.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+</main>
+<script>
+  let machines = [];
+  let selectedMachineId = null;
+  function escapeHtml(value) { return String(value ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"); }
+  function badgeClass(value) { const v = String(value || "").toLowerCase(); if (v.includes("critical") || v.includes("high")) return "badge high"; if (v.includes("warning") || v.includes("medium")) return "badge medium"; return "badge low"; }
+  async function fetchJson(url, options) { const response = await fetch(url, options); if (!response.ok) throw new Error(url + " -> " + response.status); return response.json(); }
+  async function loadSources() {
+    const data = await fetchJson("/api/v1/intelligence/sources");
+    document.getElementById("costMode").textContent = data.runtimeCostNote || "Local only";
+    document.getElementById("sourceCount").textContent = (data.models || []).length;
+  }
+  async function loadMachines() { machines = await fetchJson("/api/machines"); if (!selectedMachineId && machines.length > 0) selectedMachineId = machines[0].machineId || machines[0].deviceId || machines[0].id; renderMachines(); if (selectedMachineId) await refreshMachine(); }
+  function renderMachines() {
+    const host = document.getElementById("machineList");
+    host.innerHTML = machines.map(machine => {
+      const id = machine.machineId || machine.deviceId || machine.id;
+      const status = machine.status || "NORMAL";
+      return `<div class="machine-card ${selectedMachineId === id ? "active" : ""}" onclick="selectMachine('${escapeHtml(id)}')"><div class="row"><div class="machine-id">${escapeHtml(id)}</div><span class="${badgeClass(status)}">${escapeHtml(status)}</span></div><div style="margin-top:8px;color:var(--muted);font-size:13px;">${escapeHtml(machine.machineClass || "unknown")} | Last sensor: ${escapeHtml(machine.lastSensorType || "-")}</div></div>`;
+    }).join("");
+  }
+  async function selectMachine(machineId) { selectedMachineId = machineId; renderMachines(); await refreshMachine(); }
+  function renderSummary(report) {
+    document.getElementById("selectedMachineHero").textContent = report.machineId || "-";
+    document.getElementById("summaryShell").innerHTML = `
+      <div class="summary-grid">
+        <div class="metric"><div class="label">Risk Score</div><div class="value">${escapeHtml(report.riskScore ?? "N/A")}</div></div>
+        <div class="metric"><div class="label">Risk Level</div><div class="value"><span class="${badgeClass(report.riskLevel)}">${escapeHtml(report.riskLevel || "UNKNOWN")}</span></div></div>
+        <div class="metric"><div class="label">Confidence</div><div class="value"><span class="${badgeClass(report.confidence)}">${escapeHtml(report.confidence || "LOW")}</span></div></div>
+        <div class="metric"><div class="label">Predicted ETA</div><div class="value" style="font-size:16px;line-height:1.5;">${escapeHtml(report.predictedFailureEta || "N/A")}</div></div>
+      </div>
+      <div class="driver" style="margin-bottom:14px;"><strong>Summary</strong><div style="margin-top:8px;line-height:1.7;">${escapeHtml(report.summary || "No summary available.")}</div></div>
+      <div class="row" style="align-items:start;margin-bottom:14px;">
+        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Model Stack</h3><div class="driver-list">${(report.modelBreakdown || []).map(item => `<div class="driver"><strong>${escapeHtml(item.modelName)}</strong><div style="margin-top:6px;">${escapeHtml(item.interpretation)} | Score ${escapeHtml(item.score)}</div><div style="margin-top:6px;color:var(--muted);font-size:13px;">${escapeHtml(item.rationale || item.method || "")}</div></div>`).join("")}</div></div>
+        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Context Snapshot</h3><div class="driver-list">
+          <div class="driver">Events observed: ${escapeHtml(report.contextSnapshot?.eventsObserved ?? "0")}</div>
+          <div class="driver">Warning events: ${escapeHtml(report.contextSnapshot?.warningEvents ?? "0")}</div>
+          <div class="driver">Critical events: ${escapeHtml(report.contextSnapshot?.criticalEvents ?? "0")}</div>
+          <div class="driver">Threshold ratio: ${escapeHtml(report.contextSnapshot?.thresholdRatio ?? "0")}</div>
+          <div class="driver">Slope/event: ${escapeHtml(report.contextSnapshot?.slopePerEvent ?? "0")}</div>
+          <div class="driver">Volatility: ${escapeHtml(report.contextSnapshot?.volatility ?? "0")}</div>
+        </div></div>
+      </div>
+      <div class="row" style="align-items:start;">
+        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Top Drivers</h3><div class="driver-list">${(report.topDrivers || []).map(item => `<div class="driver">${escapeHtml(item)}</div>`).join("")}</div></div>
+        <div style="flex:1;min-width:260px;"><h3 style="margin:0 0 10px;">Training References</h3><div class="source-list">${(report.trainingSources || []).map(item => `<div class="source-item">${escapeHtml(item)}</div>`).join("")}</div></div>
+      </div>
+      <div class="driver" style="margin-top:14px;"><strong>Portfolio Highlights</strong><div class="driver-list" style="margin-top:10px;">${(report.portfolioHighlights || []).map(item => `<div class="driver">${escapeHtml(item)}</div>`).join("")}</div></div>
+      <div class="driver" style="margin-top:14px;"><strong>Recommended Action</strong><div style="margin-top:8px;line-height:1.7;">${escapeHtml(report.recommendedAction || "No action provided.")}</div></div>`;
+  }
+  function renderSuggestions() {
+    const prompts = ["How is this machine performing right now?","What is the likely failure mode and ETA?","Do vibration readings look risky?","Why is the model scoring this machine this way?","Which model is driving the risk?"];
+    document.getElementById("suggestions").innerHTML = prompts.map(prompt => `<button class="alt" onclick="useSuggestion('${escapeHtml(prompt)}')">${escapeHtml(prompt)}</button>`).join("");
+  }
+  function useSuggestion(prompt) { document.getElementById("questionInput").value = prompt; }
+  function appendBubble(text, kind) { const log = document.getElementById("chatLog"); const node = document.createElement("div"); node.className = "bubble " + kind; node.textContent = text; log.appendChild(node); log.scrollTop = log.scrollHeight; }
+  async function refreshMachine() {
+    if (!selectedMachineId) return;
+    const report = await fetchJson("/api/v1/intelligence/" + encodeURIComponent(selectedMachineId) + "/summary");
+    renderSummary(report);
+    document.getElementById("chatLog").innerHTML = "";
+    appendBubble("Selected machine: " + selectedMachineId + ". Ask about performance, alerts, sensors, or failure ETA.", "bot");
+  }
+  async function sendQuestion() {
+    const input = document.getElementById("questionInput");
+    const question = input.value.trim();
+    if (!question || !selectedMachineId) return;
+    appendBubble(question, "user");
+    input.value = "";
+    const response = await fetchJson("/api/v1/intelligence/chat", { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ machineId:selectedMachineId, question }) });
+    let answer = response.answer || "No answer generated.";
+    if (response.evidence && response.evidence.length) answer += "\n\nEvidence:\n- " + response.evidence.join("\n- ");
+    appendBubble(answer, "bot");
+  }
+  async function init() { renderSuggestions(); await Promise.all([loadSources(), loadMachines()]); }
+  init().catch(error => { document.getElementById("summaryShell").innerHTML = `<div class="footnote">Could not load intelligence console: ${escapeHtml(error.message)}</div>`; });
+</script>
+</body>
+</html>
