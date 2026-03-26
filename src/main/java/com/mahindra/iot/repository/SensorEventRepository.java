@@ -52,4 +52,10 @@ public class SensorEventRepository {
             return Collections.emptyList();
         }
     }
+
+    public Optional<SensorEvent> findByAlertId(String alertId) {
+        return findAll().stream()
+                .filter(event -> alertId.equals(event.getAlertId()))
+                .findFirst();
+    }
 }

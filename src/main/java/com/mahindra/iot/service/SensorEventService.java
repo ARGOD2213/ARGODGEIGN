@@ -29,6 +29,7 @@ public class SensorEventService {
     private final SqsService sqsService;
     private final WeatherCorrelationService weatherCorrelationService;
     private final PredictiveAnalysisService predictiveAnalysisService;
+    private final AdvisoryWorkflowService advisoryWorkflowService;
     private final RedisTemplate<Object, Object> redisTemplate;
 
     private static final String LIVE_KEY   = "live:events";
@@ -126,6 +127,7 @@ public class SensorEventService {
         event.setAlertId(alertId);
         event.setSnsMessageId(snsId);
         event.setSqsMessageId(sqsId);
+        advisoryWorkflowService.initializeDraftEvidence(event);
         repository.save(event);
 
         cacheAlert(event.getDeviceId(), alert);

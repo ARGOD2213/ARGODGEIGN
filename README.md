@@ -22,7 +22,7 @@ Industrial decision-support platform for continuous process facilities. Event-dr
 | Sprint 5 | CLOSED | PTW workflow, compliance export, AI feedback loop |
 | Sprint 6 | CLOSED | SIL register, CEMS monitoring, edge layer ADR |
 | Sprint 7 | CLOSED | Edge agent, ring buffer, offline rules, ops.html edge status |
-| Sprint 8 | IN PROGRESS | OPC-UA readiness pack, load-test harness, and LOPA workpack committed; external validation still required |
+| Sprint 8 | CLOSED | OPC-UA readiness pack, load-test harness, LOPA workpack, advisory evidence workflow, and mobile start hardening |
 
 ---
 
@@ -44,6 +44,7 @@ Rule engine is AWS Lambda only (ADR-001).
 Zero write path to OT layer (ADR-002).  
 All advisory output uses AiAdvisoryWrapper semantics and remains non-control guidance.  
 Athena + S3 for history, DynamoDB for events (ADR-004).  
+Sprint 8 adds explicit human approval states plus alert evidence records for AI advisories without changing the read-only OT boundary.
 
 No ECS. No ALB. No NAT Gateway. No Redis. No MySQL.
 
@@ -61,6 +62,7 @@ The machine intelligence path now exposes a named ensemble instead of a single g
 
 These models power the machine chat, predictive summary cards, driver breakdowns, and the local advisory path used for portfolio demos without paid runtime inference.
 
+Additional depth now exposed in the intelligence console:
 Additional depth now exposed in the intelligence console:
 
 - `ARGUS Sensor Drift Sentinel`: machine-baseline deviation scoring for subtle drift detection
@@ -90,9 +92,12 @@ Additional depth now exposed in the intelligence console:
 
 1. Open bookmarked S3 ops URL on phone
 2. Tap Start ARGUS
-3. Wait ~90 seconds for health check
+3. Wait for GitHub Action success and health check completion
 4. Tap Open Dashboard
 5. Enter username + password once per session
+
+Default login is `argus` / `changeme` unless you configured
+`ARGUS_DASHBOARD_USER` and `ARGUS_DASHBOARD_PASS` in GitHub Actions secrets.
 
 One-time setup: `bash scripts/deploy-ops-control.sh <elastic-ip>`
 
@@ -112,7 +117,12 @@ GET  /api/v1/intelligence/{machineId}/deep-dive
 GET  /api/v1/intelligence/fleet-watchlist
 POST /api/v1/intelligence/chat
 POST /api/v1/alerts/{id}/acknowledge
+POST /api/v1/alerts/{id}/review
+POST /api/v1/alerts/{id}/approve
+POST /api/v1/alerts/{id}/reject
 GET  /api/v1/alerts/unacknowledged
+GET  /api/v1/alerts/evidence
+GET  /api/v1/alerts/{id}/evidence
 GET  /api/v1/handover/summary
 POST /api/v1/handover/note
 GET  /api/v1/zones/risk

@@ -52,10 +52,17 @@ jobs:
           echo "EC2 Public IP: $PUBLIC_IP"
 
       - name: Wait for EC2 to be ready
-        run: sleep 60
+        run: |
+          aws ec2 wait instance-status-ok \
+            --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
+            --region ap-south-1
 
       - name: Prepare runtime env file
         run: |
+          DASHBOARD_USER="${{ secrets.ARGUS_DASHBOARD_USER }}"
+          DASHBOARD_PASS="${{ secrets.ARGUS_DASHBOARD_PASS }}"
+          if [ -z "$DASHBOARD_USER" ]; then DASHBOARD_USER="argus"; fi
+          if [ -z "$DASHBOARD_PASS" ]; then DASHBOARD_PASS="changeme"; fi
           mkdir -p deploy
           cat > deploy/app.env << EOF
           AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -78,6 +85,8 @@ jobs:
           AI_ANALYSIS_ENABLED=true
           SIMULATOR_ENABLED=false
           SPRING_CACHE_TYPE=caffeine
+          ARGUS_DASHBOARD_USER=$DASHBOARD_USER
+          ARGUS_DASHBOARD_PASS=$DASHBOARD_PASS
           EOF
 
       - name: Copy JAR and env file to EC2
@@ -123,16 +132,42 @@ jobs:
             set +a
             pkill -f iot-alert-engine-2.0.0.jar || true
             nohup java -jar iot-alert-engine-2.0.0.jar > app.log 2>&1 &
-            sleep 20
-            if ! pgrep -af iot-alert-engine-2.0.0.jar; then
-              echo "ERROR: app process did not start. Last app.log lines:"
-              tail -n 120 /home/ec2-user/argodreign-run/app.log || true
-              exit 1
+            for attempt in $(seq 1 24); do
+              if curl -fsS http://127.0.0.1:8080/api/v1/health >/dev/null; then
+                echo "Application health endpoint is responding"
+                exit 0
+              fi
+              if ! pgrep -af iot-alert-engine-2.0.0.jar >/dev/null; then
+                echo "ERROR: app process exited before health check passed. Last app.log lines:"
+                tail -n 120 /home/ec2-user/argodreign-run/app.log || true
+                exit 1
+              fi
+              echo "Waiting for application health... attempt $attempt/24"
+              sleep 5
+            done
+            echo "ERROR: application did not become healthy in time. Last app.log lines:"
+            tail -n 120 /home/ec2-user/argodreign-run/app.log || true
+            exit 1
+
+      - name: Verify public health endpoint
+        run: |
+          PUBLIC_IP=${{ steps.get-ip.outputs.public_ip }}
+          for attempt in $(seq 1 18); do
+            if curl -fsS "http://$PUBLIC_IP:8080/api/v1/health" >/dev/null; then
+              echo "Public health endpoint is reachable"
+              exit 0
             fi
+            echo "Waiting for public health endpoint... attempt $attempt/18"
+            sleep 10
+          done
+          echo "ERROR: public health endpoint did not respond in time"
+          exit 1
 
       - name: Print live URLs
         run: |
           PUBLIC_IP=${{ steps.get-ip.outputs.public_ip }}
+          DASHBOARD_USER="${{ secrets.ARGUS_DASHBOARD_USER }}"
+          if [ -z "$DASHBOARD_USER" ]; then DASHBOARD_USER="argus"; fi
           {
             echo "## 🚀 ARGODREIGN IS LIVE"
             echo ""
@@ -143,6 +178,11 @@ jobs:
             echo "- Platform Status: http://$PUBLIC_IP:8080/api/platform/status"
             echo "- DLQ Status: http://$PUBLIC_IP:8080/api/admin/dlq-status"
             echo "- Machines: http://$PUBLIC_IP:8080/api/machines"
+            if [ -z "${{ secrets.ARGUS_DASHBOARD_PASS }}" ]; then
+              echo "- Login: $DASHBOARD_USER / changeme"
+            else
+              echo "- Login: $DASHBOARD_USER / ARGUS_DASHBOARD_PASS secret"
+            fi
             echo ""
             echo "💡 Open these URLs on your phone browser."
             echo "💡 Run STOP workflow after demo to stop billing."

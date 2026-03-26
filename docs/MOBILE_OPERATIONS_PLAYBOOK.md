@@ -21,8 +21,10 @@ This is the correct phone-first playbook for current architecture.
 
 1. Open GitHub app -> repository -> Actions.
 2. Run `START IoT Server`.
-3. Wait for success and open URLs from step summary.
-4. After demo, run `STOP IoT Server`.
+3. Wait for workflow success and open URLs from step summary.
+4. Login with `argus` / `changeme` unless you configured `ARGUS_DASHBOARD_USER` and `ARGUS_DASHBOARD_PASS` secrets.
+5. The workflow now waits for EC2 status checks plus local/public app health before reporting success.
+6. After demo, run `STOP IoT Server`.
 
 ## Reviewer flow from phone (no desktop)
 

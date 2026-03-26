@@ -6,7 +6,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -14,6 +17,7 @@ import java.util.stream.Collectors;
 public class DashboardService {
 
     private final SensorEventService sensorEventService;
+    private final AdvisoryWorkflowService advisoryWorkflowService;
     private final ObjectMapper objectMapper;
 
     public Map<String, Object> getOverview() {
@@ -45,18 +49,21 @@ public class DashboardService {
                 .toList();
 
         Map<Object, Object> alertHistory = sensorEventService.getAlertHistory();
+        Map<String, Long> approvalSummary = advisoryWorkflowService.getApprovalSummary();
 
-        return Map.of(
-                "lastUpdated", Instant.now().toString(),
-                "liveEventCount", events.size(),
-                "warningCount", warningCount,
-                "criticalCount", criticalCount,
-                "normalCount", normalCount,
-                "averageAiRiskScore", Math.round(avgRisk * 100.0) / 100.0,
-                "activeDevicesWithAlerts", alertHistory.size(),
-                "topSensors", topSensorList,
-                "latestEvents", events.stream().limit(10).toList()
-        );
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("lastUpdated", Instant.now().toString());
+        payload.put("liveEventCount", events.size());
+        payload.put("warningCount", warningCount);
+        payload.put("criticalCount", criticalCount);
+        payload.put("normalCount", normalCount);
+        payload.put("averageAiRiskScore", Math.round(avgRisk * 100.0) / 100.0);
+        payload.put("activeDevicesWithAlerts", alertHistory.size());
+        payload.put("advisoryApprovalSummary", approvalSummary);
+        payload.put("pendingHumanReviewCount", approvalSummary.getOrDefault("DRAFT", 0L) + approvalSummary.getOrDefault("REVIEWED", 0L));
+        payload.put("topSensors", topSensorList);
+        payload.put("latestEvents", events.stream().limit(10).toList());
+        return payload;
     }
 
     private SensorEvent toSensorEvent(Object raw) {

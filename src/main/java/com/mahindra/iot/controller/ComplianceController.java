@@ -1,7 +1,9 @@
 package com.mahindra.iot.controller;
 
+import com.mahindra.iot.service.AdvisoryWorkflowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +18,10 @@ import java.util.Map;
 
 @RestController
 @Tag(name = "Compliance Dashboard API", description = "Compliance placeholders for Sprint 2")
+@RequiredArgsConstructor
 public class ComplianceController {
+
+    private final AdvisoryWorkflowService advisoryWorkflowService;
 
     @GetMapping("/api/v1/compliance/ocs-score")
     @Operation(summary = "Overall compliance score demo snapshot")
@@ -108,11 +113,17 @@ public class ComplianceController {
     @PostMapping("/api/compliance/form7")
     @Operation(summary = "Generate Form 7 placeholder payload")
     public ResponseEntity<Map<String, Object>> generateForm7() {
+        Map<String, Long> approvalSummary = advisoryWorkflowService.getApprovalSummary();
+        long pendingApprovals = approvalSummary.getOrDefault("DRAFT", 0L)
+                + approvalSummary.getOrDefault("REVIEWED", 0L);
         return ResponseEntity.ok(Map.of(
                 "form", "Form 7 - Accident/Incident Preliminary Record",
                 "generatedAt", LocalDate.now().toString(),
-                "status", "DRAFT",
-                "note", "Sprint 5 will generate PDF output"
+                "status", pendingApprovals == 0 ? "REVIEWED" : "DRAFT",
+                "pendingAdvisoryApprovals", pendingApprovals,
+                "note", pendingApprovals == 0
+                        ? "Advisory evidence has been reviewed; PDF export remains outside current demo scope"
+                        : "Advisory evidence still requires human review before submission"
         ));
     }
 
@@ -157,6 +168,9 @@ public class ComplianceController {
     }
 
     private List<Map<String,Object>> buildKpiSummary() {
+        Map<String, Long> approvalSummary = advisoryWorkflowService.getApprovalSummary();
+        long pendingApprovals = approvalSummary.getOrDefault("DRAFT", 0L)
+                + approvalSummary.getOrDefault("REVIEWED", 0L);
         return List.of(
             Map.of("kpi","OEE","value",84.7,"unit","%","status","GREEN","threshold",85.0),
             Map.of("kpi","CRITICAL Alert Count","value",3,"unit","count","status","YELLOW","threshold",0),
@@ -164,7 +178,9 @@ public class ComplianceController {
             Map.of("kpi","NH3 TWA Max","value",18.4,"unit","ppm","status","GREEN","threshold",25.0),
             Map.of("kpi","WBGT Peak","value",31.2,"unit","degC","status","YELLOW","threshold",30.0),
             Map.of("kpi","Sensor Health GOOD","value",21,"unit","count","status","GREEN","threshold",20),
-            Map.of("kpi","Active PTW Compliance","value",100.0,"unit","%","status","GREEN","threshold",100.0)
+            Map.of("kpi","Active PTW Compliance","value",100.0,"unit","%","status","GREEN","threshold",100.0),
+            Map.of("kpi","Pending Advisory Reviews","value",pendingApprovals,"unit","count","status",pendingApprovals == 0 ? "GREEN" : "YELLOW","threshold",0),
+            Map.of("kpi","Approved Advisories","value",approvalSummary.getOrDefault("APPROVED", 0L),"unit","count","status","GREEN","threshold",0)
         );
     }
 

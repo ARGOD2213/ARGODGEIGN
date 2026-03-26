@@ -35,6 +35,12 @@ public final class AiAdvisoryWrapper {
         advisory.put("validFor", VALID_FOR);
         advisory.put("calibrated", false);
         advisory.put("consensus", event.getAnalysisSource());
+        advisory.put("reviewStatus", event.getAiReviewStatus() != null ? event.getAiReviewStatus() : "DRAFT");
+        advisory.put("reviewedBy", event.getAiReviewedBy() != null ? event.getAiReviewedBy() : "UNASSIGNED");
+        advisory.put("reviewedAt", event.getAiReviewedAt());
+        advisory.put("reviewNote", event.getAiReviewNote());
+        advisory.put("evidenceId", event.getAiEvidenceId());
+        advisory.put("consensus", event.getAnalysisSource() != null ? event.getAnalysisSource() : event.getLlmConsensus());
         return advisory;
     }
 }

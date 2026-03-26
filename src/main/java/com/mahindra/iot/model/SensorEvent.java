@@ -63,6 +63,19 @@ public class SensorEvent implements Serializable {
     private String alertActionability;
     private String alertAccuracyNote;
     private String primaryFailureMode;
+    private String aiReviewStatus;
+    private String aiReviewedBy;
+    private String aiReviewNote;
+    private String aiReviewedAt;
+    private String aiEvidenceId;
+    private String aiEvidenceCapturedAt;
+    private String aiInputTags;
+    private String aiRuleVersion;
+    private String aiModelVersion;
+    private Double geminiRiskScore;
+    private Double claudeRiskScore;
+    private Double gpt4RiskScore;
+    private String llmConsensus;
 
     private String snsMessageId;
     private String sqsMessageId;
