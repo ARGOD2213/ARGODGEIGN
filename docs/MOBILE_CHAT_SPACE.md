@@ -31,8 +31,9 @@ This file is the phone-first handoff bridge for the current repo state.
   - Dashboard overview now exposes advisory approval summary
   - Mobile start workflow hardened for real health checks
 - README and mobile operations docs updated to match current workflow and login defaults
-- Main implementation commit:
-  - `1964dab` `feat(sprint8): add advisory evidence workflow and mobile start hardening`
+- Integrated commits on current `master` line:
+  - `5092830` `feat(sprint8): add advisory evidence workflow and mobile start hardening`
+  - `f655226` `docs(mobile): refresh sprint 8 handoff`
 
 ## Completed Tasks
 
